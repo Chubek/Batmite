@@ -1,0 +1,43 @@
+program            ::= { expression } ;
+
+expression         ::= identifier 
+                  | literal 
+                  | "(" { expression } ")" 
+                  | "[" { expression } "]" 
+                  | quote ;
+
+quote              ::= "'" "(" expression ")" ;
+
+identifier         ::= letter { letter | digit | special-character } ;
+
+literal            ::= number | string | boolean ;
+
+number             ::= integer | floating-point ;
+
+integer            ::= digit { digit }  
+                  | hex-digit { hex-digit } ; 
+
+floating-point     ::= integer ("." digit { digit })? 
+                  | integer ("e" | "E") integer ;
+
+character-literal  ::= "#\" ( hex-escape | unicode-escape | unicode-character ) ;
+
+hex-escape         ::= "x" hex-digit { hex-digit } ;
+unicode-escape     ::= "u" hex-digit { hex-digit } ; 
+
+string             ::= '"' { unicode-character } '"' ;
+
+boolean            ::= "#t" | "#f" ;
+
+character          ::= unicode-character ;
+
+unicode-character  ::= any valid Unicode character ;
+
+letter             ::= "a" | "b" | ... | "z" | "A" | "B" | ... | "Z" ;
+
+hex-digit          ::= digit | "a" | "b" | "c" | "d" | "e" | "f" ;
+
+digit              ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+special-character  ::= "+" | "-" | "*" | "/" | "=" | "<" | ">" | "&" | "|" | "%" | "!" ;
+
