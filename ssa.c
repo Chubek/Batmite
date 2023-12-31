@@ -53,11 +53,13 @@ typedef struct {
 
 typedef struct {
   Instruction *instructions;
+  CFGBlock *cfgBlock;
   int numInstructions;
-} BasicInstructionBlock;
+} InstructionBlock;
 
 typedef struct {
-  BasicInstructionBlock *basicBlocks;
+  InstructionBlock *instructionBlocks;
+  CFGBlock *entryCFGBlock;
   int numBlocks;
 } IRFunction;
 
