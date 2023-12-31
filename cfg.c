@@ -1,14 +1,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-struct BasicCFGBlock;
+struct CFGBlock;
 
 typedef struct {
-  struct BasicCFGBlock *source;
-  struct BasicCFGBlock *destination;
+  struct CFGBlock *source;
+  struct CFGBlock *destination;
 } CFGEdge;
 
-typedef struct BasicCFGBlock {
+typedef struct CFGBlock {
 
   Instruction *instructions;
   int numInstructions;
@@ -20,15 +20,15 @@ typedef struct BasicCFGBlock {
   int numPredecessors;
 
   int blockID;
-} BasicCFGBlock;
+} CFGBlock;
 
 typedef struct {
-  BasicCFGBlock **basicBlocks;
+  CFGBlock **basicBlocks;
   int numBlocks;
 } ControlFlowGraph;
 
-BasicCFGBlock *createBasicCFGBlock(void) {
-  BasicCFGBlock *block = zalloc(sizeof(BasicCFGBlock));
+CFGBlock *createCFGBlock(void) {
+  CFGBlock *block = zalloc(sizeof(CFGBlock));
 
   block->instructions = NULL;
   block->numInstructions = 0;
@@ -48,7 +48,7 @@ ControlFlowGraph *createControlFlowGraph(void) {
   return cfg;
 }
 
-void addEdge(BasicCFGBlock *source, BasicCFGBlock *destination) {
+void addEdge(CFGBlock *source, CFGBlock *destination) {
 
   source->successors = zealloc(source->successors,
                                (source->numSuccessors + 1) * sizeof(CFGEdge));
@@ -68,8 +68,8 @@ void addEdge(BasicCFGBlock *source, BasicCFGBlock *destination) {
 void initializeCFG(ControlFlowGraph *cfg) {
   cfg->basicBlocks = zalloc(2 * sizeof(uintptr_t));
 
-  cfg->basicBlocks[0] = createBasicCFGBlock();
-  cfg->basicBlocks[1] = createBasicCFGBlock();
+  cfg->basicBlocks[0] = createCFGBlock();
+  cfg->basicBlocks[1] = createCFGBlock();
 
   cfg->basicBlocks[0].blockID = 0;
   cfg->basicBlocks[1].blockID = 1;
