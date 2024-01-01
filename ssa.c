@@ -99,6 +99,39 @@ typedef struct {
   int numFunctions;
 } IRProgram;
 
+typedef struct Node {
+   enum {
+	UQUAD,
+	QUAD,
+	UDOUBLE,
+	DOBULE,
+	UHALF,
+	HALF,
+	UBYTE,
+	BYTE,
+	POINTER,
+   } kind;
+   union {
+	unsigned long unsignedQuad;
+	long signedQuad;
+	unsigned int unsignedDouble;
+	int signedDouble;
+	unsigned short unsignedHalf;
+	short signedHalf;
+	unsigned char unsignedByte;
+	char signedByte;
+	void* pointer;
+    };
+    struct Node *next;
+} Node;
+
+
+typedef struct {
+    Node *localVariables;  
+    Node *parameters;      
+    long returnAddress;
+    long stackPointer;;
+} ActivationRecord;
 
 SSAOperand createSSAOperand(int version, int index) {
     SSAOperand operand;
@@ -177,5 +210,17 @@ IRProgram createIRProgram(IRFunction *functions, int numFunctions) {
     return program;
 }
 
+Node* insert(Node *head, int data) {
+    Node *newNode = (Node *)zalloc(sizeof(Node));
+    newNode->data = data;
+    newNode->next = head;
+    return newNode;
+}
 
-
+ActivationRecord createActivationRecord(int returnAddress) {
+   ActivationRecord record;
+   record.localVariable = NULL;
+   record.parameters = NULL;
+   record.returnAddress = returnAddress;
+   reocrd.stackPointer = 0;
+}
