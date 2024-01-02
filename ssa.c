@@ -11,6 +11,7 @@ typedef enum {
   HALF,
   UBYTE,
   BYTE,
+  BOOLEAN,
   POINTER,
 } IRValueKind;
 
@@ -25,6 +26,7 @@ typedef struct Node {
     short signedHalf;
     unsigned char unsignedByte;
     char signedByte;
+    bool boolean;
     void *pointer;
   };
 } IRValue;
@@ -72,7 +74,7 @@ typedef enum {
 } IROpcode;
 
 typedef struct {
-  int isConstant;
+  bool isConstant;
   IRValue value;
 } IROperand;
 
@@ -84,6 +86,7 @@ typedef struct {
 
 typedef struct {
   IROpcode opcode;
+  bool isDead;
   SSAOperand result;
   IROperand operand1;
   IROperand operand2;
@@ -112,6 +115,7 @@ typedef struct {
 typedef struct {
   Instruction *instructions;
   CFGBlock *cfgBlock;
+  bool isAllDead;
   int numInstructions;
 } InstructionBlock;
 
@@ -162,6 +166,9 @@ IRValue createIRValue(IRValueKind kind, void *value) {
     irValue.unsignedByte = *((unsigned char *)value);
   case BYTE:
     irValue.signedByte = *((char *)value);
+    break;
+  case BOOLEAN:
+    irValue.boolean = *((bool)value);
     break;
   case POINTER:
     irValue.pointer = value;
@@ -397,43 +404,35 @@ void optimizeStrengthReduction(IRInstruction *instructions,
     IRInstruction *currentInstr = &instructions[i];
 
     if (currentInstr->opcode == IR_MUL) {
-      // Check if the operands are constants or powers of two
       if (currentInstr->operand1.isConstant &&
           currentInstr->operand2.isConstant) {
-        // Replace multiplication with addition of constants
         currentInstr->opcode = IR_ADD;
         currentInstr->result.irValue->value =
             currentInstr->operand1.value * currentInstr->operand2.value;
       } else if (currentInstr->operand2.isConstant &&
                  (currentInstr->operand2.value &
                   (currentInstr->operand2.value - 1)) == 0) {
-        // Operand2 is a power of two, replace multiplication with left shift
         currentInstr->opcode = IR_LSHIFT;
         currentInstr->operand2.value = log2(currentInstr->operand2.value);
       } else if (currentInstr->operand1.isConstant &&
                  (currentInstr->operand1.value &
                   (currentInstr->operand1.value - 1)) == 0) {
-        // Operand1 is a power of two, replace multiplication with left shift
         currentInstr->opcode = IR_LSHIFT;
         currentInstr->operand1.value = log2(currentInstr->operand1.value);
       }
     } else if (currentInstr->opcode == IR_DIV) {
-      // Check if the divisor is a power of two
       if (currentInstr->operand2.isConstant &&
           (currentInstr->operand2.value & (currentInstr->operand2.value - 1)) ==
               0) {
-        // Operand2 is a power of two, replace division with right shift
         currentInstr->opcode = IR_RSHIFT;
         currentInstr->operand2.value = log2(currentInstr->operand2.value);
       }
     } else if (currentInstr->opcode == IR_MOD) {
-      // Check if the divisor is a power of two
       if (currentInstr->operand2.isConstant &&
           (currentInstr->operand2.value & (currentInstr->operand2.value - 1)) ==
               0) {
-        // Operand2 is a power of two, replace modulus with bitwise AND
         currentInstr->opcode = IR_AND;
-        currentInstr->operand2.value -= 1; // Subtract 1 to create a bitmask
+        currentInstr->operand2.value -= 1;
       }
     }
   }
@@ -444,21 +443,94 @@ void optimizeTailRecursion(IRInstruction *instructions, int numInstructions) {
     if (instructions[i].opcode == IR_CALL && i + 1 < numInstructions &&
         instructions[i + 1].opcode == IR_RETURN &&
         instructions[i].result.version == instructions[i + 1].result.version) {
-      // Tail call detected: replace the CALL with a RETURN
+
       instructions[i].opcode = IR_RETURN;
       instructions[i].operand1 = instructions[i + 1].operand1;
       instructions[i].operand2 = instructions[i + 1].operand2;
 
-      // Skip the next instruction as it's now redundant
       for (int j = i + 1; j < numInstructions - 1; j++) {
         instructions[j] = instructions[j + 1];
       }
 
-      // Decrement the instruction count
       numInstructions--;
 
-      // Revisit the current instruction in case it can be optimized further
       i--;
     }
   }
+}
+
+bool isConstantOperand(IROperand *operand) { return operand->isConstant; }
+
+bool isDeadInstruction(IRInstruction *instruction) {
+  return instruction->isDead;
+}
+
+bool isDeadBlock(InstructionBlock *block) { return block->isAllDead; }
+
+void updateConstantValue(IROperand *operand, IRValue newValue) {
+  operand->isConstant = true;
+  operand->value = newValue;
+}
+
+void killInstruction(IRInstruction *instruction) { instruction->isDead = true; }
+
+void killBlock(InstructionBlock *block) { block->isAllDead = true; }
+
+bool irOoperandsEqual(IROperand *irOperand1, IROperand *irOperand2) {
+  if (!isConstantOperand(irOperand1) || !isConstantOperand(irOperand2)) {
+    return 0;
+  }
+
+  return irOperand1->value.pointer == irOperand2->value.pointer;
+}
+
+bool ssaOperandsEqual(SSAOperand *ssaOperand1, SSAOperand *ssaOperand2) {
+  return (ssaOperand1->version == ssaOperand2->version) &&
+         (ssaOperand1->index == ssaOperand2->index) &&
+         (ssaOperand1->value.pointer == ssaOperand2->value.pointer);
+}
+
+bool irInstructionsEqual(IRInstruction *irInstruction1,
+                         IRInstruction *irInstruction2) {
+  return (irInstruction1->opcode == irInstruction2->opcode) &&
+         (irInstruction1->isDead == irInstruction2->isDead) &&
+         ssaOperandsEqual(irInstruction1->result, irInstruction2->result) &&
+         irOperandsEqual(irInstruction1->operand1, irInstruction2->operand1) &&
+         irOperandsEqual(irInstruction1->operand2, irInstruction2->operand2);
+}
+
+bool phiInstructionsEqual(PhiInstruction *phiInstruction1,
+                          PhiInstruction *phiInstruction2) {
+  return (phiInstruction1->opcode == phiInstruction2->opcode) &&
+         ssaOperandsEqual(phiInstruction1->result, phiInstruction2->result) &&
+         ssaOperandsEqual(phiInstruction1->operand1,
+                          phiInstruction2->operand1) &&
+         ssaOperandsEqual(phiInstruction1->operand2, phiInstruction2->operand2);
+}
+
+bool instructionsEqual(Instruction *instruction1, Instruction *instruction2) {
+  if ((instruction1->kind == instruction2->kind) == INST_PHI) {
+    return phiInstructionsEqual(instruction1->phiInstruction,
+                                instruction2->phiInstruction)
+  } else
+    return irInstructionsEqual(instructions1->irInstruction,
+                               instruction2->irInstruction);
+}
+
+bool allInstructionsEqual(Instruction **instructions1,
+                          Instruction **instructions2, int numInstructions) {
+  while (--numInstructions)
+           if (!instructionsEqual(instructions1[numInstructions], instructions2[numInstructions])
+			   return false;
+   return true;
+}
+
+bool instructionBlocksEqual(InstructionBlock *instructionBlock1,
+                            InstructionBlock *instructionBlock2) {
+  if (!instructionBlock1->isAllDead && !instructionBlock2->isAllDead)
+    &&(instructionBlock1->numInstructions ==
+       instructionBlock2->numInstructions) &&
+        allInstructionsEqual(&instructionBlock1->instructions,
+                             &instructionBlock2->instructions,
+                             instructionBlock1->numInstructions);
 }
