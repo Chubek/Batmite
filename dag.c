@@ -1,3 +1,4 @@
+#include <stdlib.h>
 
 typedef struct DAGNode {
   IROpcode opcode;
