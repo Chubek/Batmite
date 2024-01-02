@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -259,4 +260,180 @@ ActivationRecord createActivationRecord(int returnAddress) {
   record.parameters = NULL;
   record.returnAddress = returnAddress;
   reocrd.stackPointer = 0;
+}
+
+void optimizeConstantFolding(IRFunction *irFunction) {
+  for (int i = 0; i < irFunction->numBlocks; i++) {
+    InstructionBlock *block = &irFunction->instructionBlocks[i];
+
+    for (int j = 0; j < block->numInstructions; j++) {
+      Instruction *instr = &block->instructions[j];
+
+      if (instr->kind == INST_IR && instr->irInstruction.opcode != IR_PHI) {
+        int resultValue = 0;
+
+        switch (instr->irInstruction.opcode) {
+        case IR_ADD:
+          resultValue = instr->irInstruction.operand1.value +
+                        instr->irInstruction.operand2.value;
+          break;
+
+        case IR_SUB:
+          resultValue = instr->irInstruction.operand1.value -
+                        instr->irInstruction.operand2.value;
+          break;
+
+        case IR_MUL:
+          resultValue = instr->irInstruction.operand1.value *
+                        instr->irInstruction.operand2.value;
+          break;
+
+        case IR_DIV:
+          if (instr->irInstruction.operand2.value != 0) {
+            resultValue = instr->irInstruction.operand1.value /
+                          instr->irInstruction.operand2.value;
+          } else {
+          }
+          break;
+
+        case IR_MOD:
+          if (instr->irInstruction.operand2.value != 0) {
+            resultValue = instr->irInstruction.operand1.value %
+                          instr->irInstruction.operand2.value;
+          } else {
+          }
+          break;
+
+        case IR_EQ:
+          resultValue = (instr->irInstruction.operand1.value ==
+                         instr->irInstruction.operand2.value)
+                            ? 1
+                            : 0;
+          break;
+
+        case IR_NE:
+          resultValue = (instr->irInstruction.operand1.value !=
+                         instr->irInstruction.operand2.value)
+                            ? 1
+                            : 0;
+          break;
+
+        case IR_GT:
+          resultValue = (instr->irInstruction.operand1.value >
+                         instr->irInstruction.operand2.value)
+                            ? 1
+                            : 0;
+          break;
+
+        case IR_GE:
+          resultValue = (instr->irInstruction.operand1.value >=
+                         instr->irInstruction.operand2.value)
+                            ? 1
+                            : 0;
+          break;
+
+        case IR_LT:
+          resultValue = (instr->irInstruction.operand1.value <
+                         instr->irInstruction.operand2.value)
+                            ? 1
+                            : 0;
+          break;
+
+        case IR_LE:
+          resultValue = (instr->irInstruction.operand1.value <=
+                         instr->irInstruction.operand2.value)
+                            ? 1
+                            : 0;
+          break;
+
+        case IR_AND:
+          resultValue = (instr->irInstruction.operand1.value &&
+                         instr->irInstruction.operand2.value)
+                            ? 1
+                            : 0;
+          break;
+
+        case IR_OR:
+          resultValue = (instr->irInstruction.operand1.value ||
+                         instr->irInstruction.operand2.value)
+                            ? 1
+                            : 0;
+          break;
+
+        case IR_BITWISE_AND:
+          resultValue = instr->irInstruction.operand1.value &
+                        instr->irInstruction.operand2.value;
+          break;
+
+        case IR_BITWISE_OR:
+          resultValue = instr->irInstruction.operand1.value |
+                        instr->irInstruction.operand2.value;
+          break;
+
+        case IR_BITWISE_XOR:
+          resultValue = instr->irInstruction.operand1.value ^
+                        instr->irInstruction.operand2.value;
+          break;
+
+        default:
+          break;
+        }
+
+        instr->kind = INST_IR;
+        instr->irInstruction.opcode = IR_ASSIGN;
+        instr->irInstruction.result.isConstant = 1;
+        instr->irInstruction.result.value = resultValue;
+        instr->irInstruction.operand1.value = 0;
+        instr->irInstruction.operand2.value = 0;
+      }
+    }
+  }
+}
+
+void optimizeStrengthReduction(IRInstruction *instructions,
+                               int numInstructions) {
+  for (int i = 0; i < numInstructions; i++) {
+    IRInstruction *currentInstr = &instructions[i];
+
+    if (currentInstr->opcode == IR_MUL) {
+      // Check if the operands are constants or powers of two
+      if (currentInstr->operand1.isConstant &&
+          currentInstr->operand2.isConstant) {
+        // Replace multiplication with addition of constants
+        currentInstr->opcode = IR_ADD;
+        currentInstr->result.irValue->value =
+            currentInstr->operand1.value * currentInstr->operand2.value;
+      } else if (currentInstr->operand2.isConstant &&
+                 (currentInstr->operand2.value &
+                  (currentInstr->operand2.value - 1)) == 0) {
+        // Operand2 is a power of two, replace multiplication with left shift
+        currentInstr->opcode = IR_LSHIFT;
+        currentInstr->operand2.value = log2(currentInstr->operand2.value);
+      } else if (currentInstr->operand1.isConstant &&
+                 (currentInstr->operand1.value &
+                  (currentInstr->operand1.value - 1)) == 0) {
+        // Operand1 is a power of two, replace multiplication with left shift
+        currentInstr->opcode = IR_LSHIFT;
+        currentInstr->operand1.value = log2(currentInstr->operand1.value);
+      }
+    } else if (currentInstr->opcode == IR_DIV) {
+      // Check if the divisor is a power of two
+      if (currentInstr->operand2.isConstant &&
+          (currentInstr->operand2.value & (currentInstr->operand2.value - 1)) ==
+              0) {
+        // Operand2 is a power of two, replace division with right shift
+        currentInstr->opcode = IR_RSHIFT;
+        currentInstr->operand2.value = log2(currentInstr->operand2.value);
+      }
+    } else if (currentInstr->opcode == IR_MOD) {
+      // Check if the divisor is a power of two
+      if (currentInstr->operand2.isConstant &&
+          (currentInstr->operand2.value & (currentInstr->operand2.value - 1)) ==
+              0) {
+        // Operand2 is a power of two, replace modulus with bitwise AND
+        currentInstr->opcode = IR_AND;
+        currentInstr->operand2.value -= 1; // Subtract 1 to create a bitmask
+      }
+    }
+  }
 }
