@@ -68,6 +68,7 @@ typedef enum {
   IR_ASSIGN,
   IR_LOAD,
   IR_STORE,
+  IR_NULL,
 } IROpcode;
 
 typedef struct {
@@ -434,6 +435,30 @@ void optimizeStrengthReduction(IRInstruction *instructions,
         currentInstr->opcode = IR_AND;
         currentInstr->operand2.value -= 1; // Subtract 1 to create a bitmask
       }
+    }
+  }
+}
+
+void optimizeTailRecursion(IRInstruction *instructions, int numInstructions) {
+  for (int i = 0; i < numInstructions; i++) {
+    if (instructions[i].opcode == IR_CALL && i + 1 < numInstructions &&
+        instructions[i + 1].opcode == IR_RETURN &&
+        instructions[i].result.version == instructions[i + 1].result.version) {
+      // Tail call detected: replace the CALL with a RETURN
+      instructions[i].opcode = IR_RETURN;
+      instructions[i].operand1 = instructions[i + 1].operand1;
+      instructions[i].operand2 = instructions[i + 1].operand2;
+
+      // Skip the next instruction as it's now redundant
+      for (int j = i + 1; j < numInstructions - 1; j++) {
+        instructions[j] = instructions[j + 1];
+      }
+
+      // Decrement the instruction count
+      numInstructions--;
+
+      // Revisit the current instruction in case it can be optimized further
+      i--;
     }
   }
 }
