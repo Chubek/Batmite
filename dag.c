@@ -56,3 +56,26 @@ IRFunction createDAGIrFunction(InstructionBlock *instructionBlocks,
   irFunc.numBlocks = numBlocks;
   return irFunc;
 }
+
+void optimizeRemoveDeadCode(DAGNode *root) {
+    if (root == NULL) {
+        return;
+    }
+
+    if (root->opcode == IR_NULL) {
+        // Null node, remove it
+        root = NULL;
+        return;
+    }
+
+    nullSequenceOptimization(root->left);
+    nullSequenceOptimization(root->right);
+
+    // Check if both children are null, and the node itself is not a PHI node
+    if (root->opcode != IR_PHI && root->left == NULL && root->right == NULL) {
+        // Null sequence, replace this node with a null node
+        root->opcode = IR_NULL;
+        root->result.irValue = NULL;
+    }
+}
+
