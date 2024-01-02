@@ -105,6 +105,13 @@ void optimizeUnsignedDivision(DAGNode *node, int n, double e) {
     node->opcode = IR_MUL;
     node->operand2.value = 1.0 / twoPowK; // Replace with reciprocal
 
-    // todo: add dag node creation for new instructions
+    // Replace IR_UDIV with the formula q = (n * C) / (2 ** k)
+    node->opcode = IR_UMUL;
+    node->operand2.isConstant = true;
+    node->operand2.value.doubleRational = C;
+    node->right = createDAGNode(true, IR_POW, node->result, node->operand1,
+                                createDAGNode(true, IR_CONSTANT, node->result,
+                                              node->operand2, NULL, NULL),
+                                NULL);
   }
 }
