@@ -42,6 +42,7 @@ typedef enum {
   IR_DIV,
   IR_UDIV,
   IR_UREM,
+  IR_POW,
   IR_MOD,
   IR_NEG,
   IR_AND,
