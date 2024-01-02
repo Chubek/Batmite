@@ -11,6 +11,8 @@ typedef enum {
   HALF,
   UBYTE,
   BYTE,
+  SINGLE_RATIONAL,
+  DOUBLE_RATIONAL,
   BOOLEAN,
   POINTER,
 } IRValueKind;
@@ -26,6 +28,8 @@ typedef struct Node {
     short signedHalf;
     unsigned char unsignedByte;
     char signedByte;
+    float singleRational;
+    double doubleRational;
     bool boolean;
     void *pointer;
   };
@@ -105,6 +109,9 @@ typedef enum {
   IR_EXTEND_BYTE2DOUBLE_U,
   IR_EXTEND_BYTE2HALF_U,
   IR_COPY_DATA,
+  IR_CONSTANT,
+  IR_STATIC,
+  IR_EXTERN,
   IR_PHI,
 } IROpcode;
 
@@ -204,6 +211,12 @@ IRValue createIRValue(IRValueKind kind, void *value) {
     break;
   case BOOLEAN:
     irValue.boolean = *((bool)value);
+    break;
+  case SINGLE_RATIONAL:
+    irValue.singleRational = *((float)value);
+    break;
+  case DOUBLE_RATIONAL:
+    irValue.doubleRational = *((double)value);
     break;
   case POINTER:
     irValue.pointer = value;
