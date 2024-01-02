@@ -125,28 +125,7 @@ typedef struct {
 } IRProgram;
 
 typedef struct Node {
-  enum {
-    UQUAD,
-    QUAD,
-    UDOUBLE,
-    DOBULE,
-    UHALF,
-    HALF,
-    UBYTE,
-    BYTE,
-    POINTER,
-  } kind;
-  union {
-    unsigned long unsignedQuad;
-    long signedQuad;
-    unsigned int unsignedDouble;
-    int signedDouble;
-    unsigned short unsignedHalf;
-    short signedHalf;
-    unsigned char unsignedByte;
-    char signedByte;
-    void *pointer;
-  };
+  IRValue *value;
   struct Node *next;
 } Node;
 
@@ -155,7 +134,6 @@ typedef struct {
   Node *parameters;
   long returnAddress;
   long stackPointer;
-  ;
 } ActivationRecord;
 
 IRValue createIRValue(IRValueKind kind, void *value) {
