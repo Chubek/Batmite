@@ -92,7 +92,7 @@ void optimizeUnsignedDivision(DAGNode *node, int n, double e) {
   optimizeUnsignedDivision(node->right);
 
   if (node->opcode == IR_UDIV && node->operand2.isConstant &&
-      node->operand2.value != 0) {
+      node->operand2.value.pointer != 0) {
 
     // Calculate k as recommended by Ertl and Wien
     unsigned long k = 2 * n;
@@ -113,5 +113,46 @@ void optimizeUnsignedDivision(DAGNode *node, int n, double e) {
                                 createDAGNode(true, IR_CONSTANT, node->result,
                                               node->operand2, NULL, NULL),
                                 NULL);
+  }
+}
+
+void optimizeSignedDivision(DAGNode *node, int n, double e) {
+  if (node == NULL) {
+    return;
+  }
+
+  optimizeSignedDivision(node->left, n, e);
+  optimizeSignedDivision(node->right, n, e);
+
+  if (node->opcode == IR_DIV && node->operand2.isConstant &&
+      node->operand2.value.pointer != 0) {
+
+    // Calculate k as recommended by Ertl and Wien
+    unsigned long k = 2 * n;
+
+    // Calculate C
+    double twoPowK = pow(2, k);
+    double C = (twoPowK + e) / fabs(node->operand2.value.doubleRational);
+
+    // Replace IR_DIV with the formula q = (n * C) / (2 ** k)
+    node->opcode = IR_MUL;
+
+    // Create new DAG nodes for the division and multiplication
+    DAGNode *absOperand2 =
+        createDAGNode(true, IR_ABS, node->result, node->operand2, NULL, NULL);
+    node->operand2 =
+        createDAGNode(true, IR_POW, node->result,
+                      createDAGNode(true, IR_CONSTANT, node->result,
+                                    node->operand2, NULL, NULL),
+                      createDAGNode(true, IR_CONSTANT, node->result,
+                                    1.0 / twoPowK, NULL, NULL),
+                      NULL);
+    node->right =
+        createDAGNode(true, IR_DIV, node->result,
+                      createDAGNode(true, IR_MUL, node->result, node->operand1,
+                                    createDAGNode(true, IR_CONSTANT,
+                                                  node->result, C, NULL, NULL),
+                                    NULL, NULL),
+                      absOperand2, NULL);
   }
 }
