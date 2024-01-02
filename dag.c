@@ -1,6 +1,8 @@
+#include <stdbool.h>
 #include <stdlib.h>
 
 typedef struct DAGNode {
+  bool isConstant;
   IROpcode opcode;
   SSAOperand result;
   IROperand operand1;
@@ -22,9 +24,11 @@ typedef struct {
   };
 } DAGInstruction;
 
-DAGNode *createDAGNode(IROpcode opcode, SSAOperand result, IROperand operand1,
-                       IROperand operand2, DAGNode *left, DAGNode *right) {
+DAGNode *createDAGNode(bool isConstant, IROpcode opcode, SSAOperand result,
+                       IROperand operand1, IROperand operand2, DAGNode *left,
+                       DAGNode *right) {
   DAGNode *node = (DAGNode *)zalloc(sizeof(DAGNode));
+  node->isConstant = isConstant;
   node->opcode = opcode;
   node->result = result;
   node->operand1 = operand1;
@@ -76,5 +80,31 @@ void optimizeRemoveDeadCode(DAGNode *root) {
     // Null sequence, replace this node with a null node
     root->opcode = IR_NULL;
     root->result.irValue = NULL;
+  }
+}
+
+void optimizeUnsignedDivision(DAGNode *node, int n, double e) {
+  if (node == NULL) {
+    return;
+  }
+
+  optimizeUnsignedDivision(node->left);
+  optimizeUnsignedDivision(node->right);
+
+  if (node->opcode == IR_UDIV && node->operand2.isConstant &&
+      node->operand2.value != 0) {
+
+    // Calculate k as recommended by Ertl and Wien
+    unsigned long k = 2 * n;
+
+    // Calculate C
+    double twoPowK = pow(2, k);
+    double C = (twoPowK + e) / node->operand2.value.doubleRational;
+
+    // Replace IR_UDIV with the formula q = (n * C) / (2 ** k)
+    node->opcode = IR_MUL;
+    node->operand2.value = 1.0 / twoPowK; // Replace with reciprocal
+
+    // todo: add dag node creation for new instructions
   }
 }
