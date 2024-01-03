@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Structure to represent a atom in the S-expression tree
+// Structure to represent an atom in the S-expression tree
 typedef struct {
   char *value;
-  Atom **children;
+  struct Atom **children;
   size_t numChildren;
 } Atom;
 
@@ -27,7 +27,7 @@ Atom *createAtom(const char *value) {
   return atom;
 }
 
-// Function to add a child to a atom
+// Function to add a child to an atom
 void addChild(Atom *parent, Atom *child) {
   parent->numChildren++;
   parent->children =
@@ -40,6 +40,19 @@ void addChild(Atom *parent, Atom *child) {
   parent->children[parent->numChildren - 1] = child;
 }
 
+// Function to parse a list
+Atom *parseList(FILE *stream) {
+  Atom *list = createAtom("LIST");
+  Atom *child;
+
+  while ((child = parseSExpression(stream)) != NULL) {
+    addChild(list, child);
+  }
+
+  return list;
+}
+
+// Function to parse an S-expression
 Atom *parseSExpression(FILE *stream) {
   int c;
   while ((c = fgetc(stream)) != EOF) {
@@ -49,6 +62,8 @@ Atom *parseSExpression(FILE *stream) {
     case ')':
       fprintf(stderr, "Unexpected ')' character\n");
       exit(EXIT_FAILURE);
+    case '\'': // Single quote indicates the beginning of a list
+      return parseList(stream);
     case ' ':
     case '\t':
     case '\n':
@@ -70,15 +85,4 @@ Atom *parseSExpression(FILE *stream) {
   }
 
   return NULL; // End of file
-}
-
-Atom *parseList(FILE *stream) {
-  Atom *list = createAtom("LIST");
-  Atom *child;
-
-  while ((child = parseSExpression(stream)) != NULL) {
-    addChild(list, child);
-  }
-
-  return list;
 }
