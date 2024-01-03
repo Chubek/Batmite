@@ -7,4 +7,7 @@
 _*
 build/
 test_*
-
+tpl.c
+tpl.h
+parser.c
+parser.h
