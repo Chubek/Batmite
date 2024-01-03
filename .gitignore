@@ -1,0 +1,10 @@
+*.out
+*.a
+*.so
+*.o
+*.tmp
+*.temp
+_*
+build/
+test_*
+
