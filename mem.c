@@ -20,40 +20,40 @@ uint32_t hashPointer(const void *key) {
   return hash;
 }
 
-struct {
+typedef struct {
   void *data;
-  Node *next;
+  ZNode *next;
   uint32_t hash;
-};
+} ZNode;
 
 struct {
-  Node *head;
+  ZNode *head;
 };
 
 void initZHeap(ZHeap *zheap) { zheap->head = NULL; }
 
 void *zalloc(ZHeap *zheap, size_t size) {
-  Node *newNode = (Node *)calloc(1, sizeof(Node));
-  if (!newNode) {
+  ZNode *newZNode = (ZNode *)calloc(1, sizeof(ZNode));
+  if (!newZNode) {
     fprintf(stderr, "Memory allocation failed\n");
     exit(EXIT_FAILURE);
   }
 
-  newNode->data = calloc(1, size);
-  if (!newNode->data) {
+  newZNode->data = calloc(1, size);
+  if (!newZNode->data) {
     fprintf(stderr, "Memory allocation failed\n");
     exit(EXIT_FAILURE);
   }
-  newNode->hash = hashPointer(newNode->data);
+  newZNode->hash = hashPointer(newZNode->data);
 
-  newNode->next = zheap->head;
-  zheap->head = newNode;
+  newZNode->next = zheap->head;
+  zheap->head = newZNode;
 
-  return newNode->data;
+  return newZNode->data;
 }
 
 void *zealloc(ZHeap *zheap, void *memory, size_t new_size) {
-  Node *currentNode = zhead->head;
+  ZNode *currentZNode = zhead->head;
   uint32_t searchHash = hashPointer(memory);
 
   while (current != NULL && searchHash != current->hash)
@@ -74,10 +74,10 @@ void *zealloc(ZHeap *zheap, void *memory, size_t new_size) {
 }
 
 void zfree(ZHeap *zheap) {
-  Node *current = zheap->head;
+  ZNode *current = zheap->head;
 
   while (current != NULL) {
-    Node *next = current->next;
+    ZNode *next = current->next;
     free(current->data);
     free(current);
     current = next;
