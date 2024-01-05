@@ -11,3 +11,4 @@ tpl.c
 tpl.h
 parser.c
 parser.h
+y.tab.c
