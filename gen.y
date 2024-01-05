@@ -6,6 +6,44 @@
 int yyerror(const char *msg);
 int yylex(void);
 
+typedef enum {
+	TERM_IR_OPCODE,
+	TERM_NONTERM,
+} TermKind;
+
+typedef struct {
+	TermKind kind;
+	char *value;
+} Term;
+
+typedef struct {
+	int cost;
+} Cost;
+
+typedef struct {
+	Term *term;
+	Tree *l, *r;
+} Tree;
+
+typedef struct {
+	char *nonterm;
+	Tree *tree;
+	Cost *cost;
+	char *action;
+} Rule;
+
+typedef struct {
+	Term **terms;
+	int numterms;
+	Rule *startRule;
+} Declaration;
+
+typedef struct {
+	Declaration **decls;
+	int numdecls;
+	char *prelude, conclude;
+} Grammar;
+
 %}
 
 %union {
@@ -14,13 +52,12 @@ int yylex(void);
     int intVal;
 }
 
-%token PERCENT_PERCENT PERCENT_START PERCENT_TERM
+%token PERCENT_PERCENT PERCENT_START PERCENT_TERM  NEWLINE
 /*	"%%"		 "%start"	"%term    */
 
-%token NEWLINE
 
 %token <sigmaVal> SEMANTIC_ACTION PRELUDE CONCLUDE
-%token <stringVal> IDENTIFIER NONTERM OPCODE
+%token <stringVal> NONTERM IR_OPCODE
 %token <intVal> INTEGER
 
 %type <stringVal> nonterm term
@@ -29,9 +66,9 @@ int yylex(void);
 %%
 
 grammar: NEWLINE
-       | declaration_list RULES rule_list
-       | PRELUDE declarations_list RULES rule_list
-       | PRELUDE declarations_list RULES rule_list RULES CONCLUDE
+       | declaration_list PERCENT_PERCENT rule_list
+       | PRELUDE declarations_list PERCENT_PERCENT rule_list
+       | PRELUDE declarations_list PERCENT_PERCENT rule_list PERCENT_PERCENT CONCLUDE
        ;
 
 declaration_list: /* Empty */ 
@@ -42,14 +79,12 @@ declaration: PERCENT_START nonterm
            | PERCENT_TERM IDENTIFIER '=' INTEGER
            ;
 
-RULES: PERCENT_PERCENT
-     ;
-
 rule_list: /* Empty */ 
 	 | rule_list rule
 	 ;
 
-rule: nonterm ':' tree '=' cost  SEMANTIC_ACTION  ';'
+rule: NONTERM ':' tree '=' cost ';'
+    | NONTERM ':' tree '=' cost  SEMANTIC_ACTION  ';'
     ;
 
 cost: '(' INTEGER ')'
@@ -57,14 +92,11 @@ cost: '(' INTEGER ')'
 
 tree: /* Empty */
     | '|'
-    | term '(' tree ',' tree ')'
     | term '(' tree ')'
     | term
     ;
 
-term: IDENTIFIER
-    | INTEGER
-    | OPCODE
+term: IR_OPCODE
     | NONTERM
     ;
 
@@ -236,7 +268,7 @@ static const *char boilerplate = <<< END_HEADER_STR
 
 typedef struct State State;
 typedef struct {
-	OPCODE_TYPE opcode;
+	IR_OPCODE_TYPE opcode;
 	State *left;
 	State *right;
 	struct {
