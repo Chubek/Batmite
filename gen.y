@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 typedef enum {
 	TERM_IR_OPCODE,
@@ -52,6 +53,26 @@ Declaration* createDeclaration(Term **terms, int numTerms, Rule *startRule);
 Grammar* createGrammar(Declaration **decls, int numDecls, 
 			Rule **rules, int numRules,
 			char *preludeSigma, char *concludeSigma);
+
+
+static inline void installSwitch(char *s);
+static inline void installCase(char **c, int n, char *a);
+static inline void installFunctionDecl(char *ret, char *name, char **params, int nparams, char term);
+static inline void installBlockOpen(void);
+static inline void installBlockClose(void);
+static inline void installIfElseStatement(char **cond, char **t, int ntc, char *f);
+static inline void installFunctionCall(char *name, char **args, int nargs);
+static inline void installWhileLoop(char *cond, char *body);
+static inline void installForLoop(char *cond, char *body);
+static inline void installAssignment(char *type, char *lhs, char *rhs);
+static inline void installObjectMacro(char *name, char *value);
+static inline void installStructure(char *name, char **members, int nmemb);
+static inline void installEnumeration(char *name, char **members, int nmemb);
+static inline void installUnion(char *name, char **members, int nmemb);
+static inline void installArrayLiteral(char *type, char *name, char **elements, int nelements);
+static inline void installArrayAccess(char *target, char *index);
+static inline void installPointerAccess(char *target, char *member);
+static inline void installMemberAccess(char *target, char *member);
 
 int yyparser(const char *msg);
 int yylex(void);
@@ -362,4 +383,113 @@ Grammar *createGrammar(Declaration **decls, int numDecls,
     grammar->concludeSigma = concludeSigma;
     return grammar;
 }
+
+static inline void installSwitch(char *s) {
+    printf("switch (%s)", s);
+}
+
+static inline void installCase(char **c, int n, char *a) {
+   while (--n)
+   	printf("case %s:", c[i]);
+   printf("%s", a);
+}
+
+static inline void installFunctionDecl(char *ret, char *name, char **params, int nparams, char term) {
+    printf("%s %s(", ret, name);
+    int i = 0;
+    while (i++ < nparams - 1) {
+	printf("%s,", *params++);
+    }
+    printf("%s)%c", *params, term);
+}
+
+static inline void installBlockOpen(void) { printf(" {"); }
+static inline void installBlockClose(void) { printf(" }"); }
+
+static inline void installIfElseStatement(char **cond, char **t, int ntc, char *f) {
+  printf("if (%s) { %s; }", *cond, *t);
+  
+  int i = 0;
+  while (i++ < ntc) {
+     printf("else if (%s) { %s; }", *cond++, *t++);
+  }
+
+  if (f != NULL) {
+	printf("else { %s; }", f);
+  }
+}
+
+static inline void installFunctionCall(char *name, char **args, int nargs) {
+    printf("%s(", name);
+    int i = 0;
+    while (i++ < nargs - 1) {
+	printf("%s,", *args++);
+    }
+    printf("%s)", *args);
+}
+
+static inline void installWhileLoop(char *cond, char *body) {
+   printf("while (%s) { %s; }", cond, body);
+}
+
+static inline void installForLoop(char *cond, char *body) {
+   printf("for (%s) { %s; }", cond, body);
+}
+
+static inline void installAssignment(char *type, char *lhs, char *rhs) {
+  printf("%s %s = %s;");
+}
+
+static inline void installStructure(char *name, char **members, int nmemb) {
+    printf("struct %s {", name);
+    
+    for (int i = 0; i < nmemb; ++i) {
+        printf("%s;", *members++);
+    }
+    
+    printf("};");
+}
+
+static inline void installEnumeration(char *name, char **members, int nmemb) {
+    printf("enum %s {", name);
+    
+    for (int i = 0; i < nmemb - 1; ++i) {
+        printf("%s,", *members++);
+    }
+    
+    printf("%s};", *members);
+}
+
+static inline void installUnion(char *name, char **members, int nmemb) {
+    printf("union %s {", name);
+    
+    for (int i = 0; i < nmemb; ++i) {
+        printf("%s;", *members++);
+    }
+    
+    printf("};");
+}
+
+static inline void installArrayLiteral(char *type, char *name, char **elements, int nelements) {
+    printf("%s %s[] = {", type, name);
+    
+    for (int i = 0; i < nelements - 1; ++i) {
+        printf("%s, ", elements[i]);
+    }
+    
+    printf("%s};", elements[nelements - 1]);
+}
+
+static inline void installArrayAccess(char *target, char *index) {
+    printf("%s[%s];", target, index);
+}
+
+static inline void installPointerAccess(char *target, char *member) {
+   printf("%s->%s", target, index);
+}
+
+static inline void installMemberAccess(char *target, char *member) {
+  printf("%s.%s", target, member);
+}
+
 
