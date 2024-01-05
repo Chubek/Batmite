@@ -3,29 +3,57 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h>
+
+static inline int min(int a, int b) {
+    return (a < b) ? a : b;
+}
 
 typedef enum {
-	REG_GENERAL,
-	REG_EXTENDED,
-	REG_FLOATING,
-	REG_SIMD,
-	REG_SEGMENT,
-	REG_INSTPOINTER,
-	REG_STATUS,
-	REG_MODELSPECIFIC,
-	REG_PROGRRAMCOUNTER,
-	REG_STACKPOINTER,
-	REG_FRAMEPOINTER,
-	REG_LINK,
-	REG_SYSTEM,
-	REG_TLB,
-	REG_EXCEPTION,
-	REG_INTEGER,
-	REG_VECTOR,
-	REG_ZERO,
-	REG_GLOBAL,
-	REG_LOCAL,
+	REGISTER_GENERAL,
+	REGISTER_EXTENDED,
+	REGISTER_FLOATING,
+	REGISTER_SIMD,
+	REGISTER_SEGMENT,
+	REGISTER_INSTPOINTER,
+	REGISTER_STATUS,
+	REGISTER_MODELSPECIFIC,
+	REGISTER_PROGRRAMCOUNTER,
+	REGISTER_STACKPOINTER,
+	REGISTER_FRAMEPOINTER,
+	REGISTER_LINK,
+	REGISTER_SYSTEM,
+	REGISTER_TLB,
+	REGISTER_EXCEPTION,
+	REGISTER_INTEGER,
+	REGISTER_VECTOR,
+	REGISTER_ZERO,
+	REGISTER_GLOBAL,
+	REGISTER_LOCAL,
 } RegisterKind;
+
+typedef enum {
+    DATA_MOVEMENT,
+    ARITHMETIC,
+    LOGICAL,
+    COMPARISON,
+    CONTROL_TRANSFER,
+    BIT_MANIPULATION,
+    STRING,
+    FLOATING_POINT,
+    SYSTEM,   
+    SIMD
+    MEMORY_ACCESS,
+    EXCEPTION_SYNCHRONIZATION,
+    ARITHMETIC_LOGICAL,
+    ATOMIC,
+    MEMORY_ORDERING,
+} MachineOpcodeKind;
+
+typedef enum {
+   CONSTANT,
+   REGISTER,
+} TreeLeafKind;
 
 typedef struct {
        RegisterKind kind;
@@ -34,26 +62,24 @@ typedef struct {
 } Register;
 
 typedef struct {
-	char *value;
-	Tree *left;
-	Tree *right;
-} TreeLeaf;
+	char *name;
+	MachineOpcodeKind kind;
+} MachineOpcode;
 
-typedef struct {
-	Tree *root;
-} Tree;
+typedef struct TreeNode {
+    IROpcode opcode;
+    TreeLeafKind kind;
+    struct TreeNode* left;
+    struct TreeNode* right;
+} TreeNode;
 
-int yylex(void);
+typedef struct SubtreeInfo {
+    TreeNode *root;
+    Register *registers;
+    int numRegisters;
+} SubtreeInfo;
 
-Tree *createTree(void);
-TreeLeaf *createLeaf(char *value);
-Tree *addLeft(Tree *tree, TreeLeaf *left);
-Tree *addRight(Tree *tree, TreeLeaf *right);
 
-int ahoJohnsonDP(DAGNode* node);
-Register* code(TreeNode *node, int j);
-Register* createRegister();
-void issueInstruction(char operator, Register *result, Register *operands[], int operandCount);
 
 %}
 
@@ -61,17 +87,31 @@ void issueInstruction(char operator, Register *result, Register *operands[], int
     char *strVal;
     int intVal;
     Tree *treeVal;
+    ActionFunction actionFnVal;
+    RegisterKind regkindVal;
+    MachineOpcodeKind machineOpcodeVal;
 }
 
-%token <strVal> VALUE
+%token <strVal> LEAF_VALUE ACTION_CONTEXT ACTION_TREE REGISTER_NAME REGISTER_PCNT OPCODE_PCNT OPCODE_NAME SIGMA
+%token <regkindVal> REGISTER_KIND
+%token <machineOpcodeVal> OPCODE_KIND
 %type <treeVal> tree leaf
 
 %%
 
+opcode_decl: OPCODE_PCNT OPCODE_NAME
+	   | OPCODE_PCNT OPCODE_NAME OPCODE_KIND
+
+register_decl: REGISTER_PCNT REGISTER_NAME 
+	     | REGISTER_PCNT REGISTER_NAME REGISTER_KIND
+
+action: /* empty */
+      '{' SIGMA '}'
+
 tree: /* empty */ 	{ $$ = createTree(); }
     | leaf         	{ $$ = $1; }
 
-leaf: VALUE            	{ $$ = createLeaf($1); }
+leaf: LEAF            	{ $$ = createLeaf($1); }
     | leaf '<' tree '>' { $$ = addLeft($1, $3->root, $2); }
     | leaf '>' tree '<' { $$ = addRight($1, $3->root, $2); }
 
@@ -83,66 +123,196 @@ int main(void) {
     return 0;
 }
 
-Tree *createTree(void) {
-    Tree *tree = (Tree *)zalloc(sizeof(Tree));
-    if (tree == NULL) {
-        fprintf(stderr, "Memory allocation error\n");
-        exit(EXIT_FAILURE);
+uint32_t hashTreeNode(const TreeNode* node) {
+    if (node == NULL) {
+        return 0;
     }
-    tree->root = NULL;
-    return tree;
+
+    uint32_t hash = hashIROpcode(node->opcode) ^ hashKind(node->kind);
+    hash ^= hashTreeNode(node->left);
+    hash ^= hashTreeNode(node->right);
+
+    return hash == 0 ? 1 : hash;
 }
 
-TreeLeaf *createLeaf(char *value) {
-    TreeLeaf *leaf = (TreeLeaf *)zalloc(sizeof(TreeLeaf));
-    if (leaf == NULL) {
-        fprintf(stderr, "Memory allocation error\n");
-        exit(EXIT_FAILURE);
-    }
-    leaf->value = zStrDup(value);
-    leaf->left = NULL;
-    leaf->right = NULL;
-    return leaf;
-}
-
-Tree *addLeft(Tree *tree, TreeLeaf *parent, char *value) {
-    if (tree == NULL || value == NULL) {
-        fprintf(stderr, "Invalid tree or value\n");
+TreeNode* createNode(IROpcode data, TreeLeafKind kind) {
+    TreeNode* newNode = (TreeNode*)malloc(sizeof(TreeNode));
+    if (newNode == NULL) {
+        perror("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
 
-    TreeLeaf *newLeaf = createLeaf(value);
+    newNode->data = data;
+    newNode->kind = kind;
+    newNode->left = NULL;
+    newNode->right = NULL;
 
-    if (parent == NULL) {
-        tree->root = newLeaf;
-    } else {        
-        parent->left = newLeaf;
-    }
-
-    return tree;
+    return newNode;
 }
 
-Tree *addRight(Tree *tree, TreeLeaf *parent, char *value) {
-    if (tree == NULL || value == NULL) {
-        fprintf(stderr, "Invalid tree or value\n");
-        exit(EXIT_FAILURE);
+TreeNode* insert(TreeNode* root, IROpcode data, TreeLeafKind kind) {
+    if (root == NULL) {
+        return createNode(data, kind);
     }
 
-    TreeLeaf *newLeaf = createLeaf(value);
-
-    if (parent == NULL) {        
-        tree->root = newLeaf;
-    } else {        
-        parent->right = newLeaf;
+    if (data < root->data) {
+        root->left = insert(root->left, data);
+    } else if (data > root->data) {
+        root->right = insert(root->right, data);
     }
 
-    return tree;
+    return root;
 }
 
-int* memo_table;
+void issueInstruction(TreeNode *node) {    
+    if (node->left == NULL && node->right == NULL) {        
+        printf("LOAD R%d, %d\n", node->registers->number, node->operand);
+    } else {
+        
+        printf("OP R%d, R%d, R%d\n",
+               node->registers->number,
+               node->left->registers->number,
+               node->right->registers->number);
+    }
+}
 
 
-Register* code(TreeNode *node, int j) {
+
+SubtreeInfo *computeOptimalSubtreeHelper(TreeNode *root, int *costMatrix, int *optimalSplit) {
+    SubtreeInfo *subtree = zalloc(sizeof(SubtreeInfo));
+    subtree->root = root;
+
+    if (root->left == NULL && root->right == NULL) {
+        
+        subtree->numRegisters = 0; 
+        return subtree;
+    }
+
+    
+    SubtreeInfo *leftSubtree = computeOptimalSubtreeHelper(root->left, costMatrix, optimalSplit);
+    SubtreeInfo *rightSubtree = computeOptimalSubtreeHelper(root->right, costMatrix, optimalSplit);
+
+    
+    int currentCost = leftSubtree->numRegisters + rightSubtree->numRegisters + 1;
+
+    
+    int minCost = currentCost;
+    int splitPoint = -1;
+
+    for (int i = 1; i <= leftSubtree->numRegisters; i++) {
+        int splitCost = costMatrix[leftSubtree->numRegisters] +
+                        costMatrix[rightSubtree->numRegisters + i] + currentCost;
+
+        if (splitCost < minCost) {
+            minCost = splitCost;
+            splitPoint = i;
+        }
+    }
+
+    
+    costMatrix[leftSubtree->numRegisters + rightSubtree->numRegisters] = minCost;
+    optimalSplit[leftSubtree->numRegisters + rightSubtree->numRegisters] = splitPoint;
+    
+    subtree->numRegisters = minCost;
+    return subtree;
+}
+
+
+void initializeArrays(int numRegisters, int *costMatrix, int *optimalSplit) {
+    for (int i = 0; i <= numRegisters; i++) {
+        costMatrix[i] = -1;  
+        optimalSplit[i] = -1; 
+    }
+
+    
+    costMatrix[0] = 0;
+}
+
+
+SubtreeInfo computeOptimalSubtree(TreeNode *root) {
+    SubtreeInfo subtree;
+    subtree->root = root;
+
+    if (root == NULL) {
+        subtree->numRegisters = 0;
+        return subtree;
+    }
+
+    
+    int numRegisters = 0;
+    while (1) {
+        int *costMatrix = (int *)malloc((numRegisters + 1) * sizeof(int));
+        int *optimalSplit = (int *)malloc((numRegisters + 1) * sizeof(int));
+
+        initializeArrays(numRegisters, costMatrix, optimalSplit);       
+        SubtreeInfo *result = computeOptimalSubtreeHelper(root, costMatrix, optimalSplit);        
+        if (result->numRegisters <= numRegisters) {
+            
+            subtree = result;
+            break;
+        }
+
+        
+        numRegisters++;
+        free(costMatrix);
+        free(optimalSplit);
+    }
+
+    return subtree;
+}
+
+
+Register *createRegister(int number, RegisterKind kind, char *registerName) {
+    Register reg = zalloc(sizeof(Register));
+    reg->number = number;
+    reg->kind = kind;
+    reg->name = name;
+    
+    return reg;
+}
+
+
+void updateRegisterAllocationHelper(TreeNode *root, Register *registers, int *optimalSplit) {
+    if (root->left == NULL && root->right == NULL) {        
+        return;
+    }
+
+    int splitPoint = optimalSplit[root->left->numRegisters + root->right->numRegisters];
+
+    root->left->registers = registers;
+    root->right->registers = registers + root->left->numRegisters + splitPoint;
+
+    
+    updateRegisterAllocationHelper(root->left, registers, optimalSplit);
+    updateRegisterAllocationHelper(root->right, registers + root->left->numRegisters + splitPoint, optimalSplit);
+}
+
+
+void updateRegisterAllocation(SubtreeInfo *subtree) {
+   subtree->registers = (Register *)malloc(subtree->numRegisters * sizeof(Register));
+
+    for (int i = 0; i < subtree->numRegisters; i++) {
+        subtree->registers[i] = createRegister(i + 1);
+    }
+    
+    updateRegisterAllocationHelper(subtree->root, subtree->registers, optimalSplit);
+}
+
+
+Register alloc(Register *registers, int numRegisters, int *usedRegisters) {
+    for (int i = 0; i < numRegisters; i++) {
+        if (!usedRegisters[i]) {
+            usedRegisters[i] = 1; 
+            return registers[i];
+        }
+    }
+
+    fprintf(stderr, "Error: No available registers\n");
+    exit(EXIT_FAILURE);
+}
+
+
+Register* generateCode(TreeNode *node, int j) {
     if (node == NULL) {
         return NULL;
     }
@@ -152,7 +322,7 @@ Register* code(TreeNode *node, int j) {
 
     
     for (int t = 1; t <= k; t++) {
-        registers[t - 1] = code(subtree, j - t + 1);
+        registers[t - 1] = generateCode(subtree, j - t + 1);
     }
 
     
