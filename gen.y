@@ -55,6 +55,7 @@ Grammar* createGrammar(Declaration **decls, int numDecls,
 			char *preludeSigma, char *concludeSigma);
 
 
+static inline void installIndent(int level);
 static inline void installSwitch(char *s);
 static inline void installCase(char **c, int n, char *a);
 static inline void installFunctionDecl(char *ret, char *name, char **params, int nparams, char term);
@@ -73,6 +74,19 @@ static inline void installArrayLiteral(char *type, char *name, char **elements, 
 static inline void installArrayAccess(char *target, char *index);
 static inline void installPointerAccess(char *target, char *member);
 static inline void installMemberAccess(char *target, char *member);
+
+void generateCode(Grammar *grammar);
+
+void generateDeclaration(Declaration *declaration);
+void generateRule(Rule *rule);
+void generateTree(Tree *tree);
+void generateTerm(Term *term);
+void generateCost(Cost *cost);
+void generateSwitch(Rule *rule);
+void generateStateFunction(Grammar *grammar);
+void generateTreeMatcher(Tree *tree, char *nonterm, int costIndex);
+
+void error(const char *msg, ...);
 
 int yyparser(const char *msg);
 int yylex(void);
@@ -108,12 +122,15 @@ grammar: NEWLINE {
 }
 | declaration_list PERCENT_PERCENT rule_list {
     $$ = createGrammar($1, $<intVal>1, $3, $<intVal>3, NULL, NULL);
+    generateCode($$);
 }
 | PRELUDE declarations_list PERCENT_PERCENT rule_list {
     $$ = createGrammar($2, $<intVal>2, $4, $<intval>4, $1, NULL);
+    generateCode($$);
 }
 | PRELUDE declarations_list PERCENT_PERCENT rule_list PERCENT_PERCENT CONCLUDE {
     $$ = createGrammar($2, $<intVal>2, $4, $<intval>4, $1, $6);
+    generateCode($$);
 };
 
 declaration_list:
@@ -384,6 +401,13 @@ Grammar *createGrammar(Declaration **decls, int numDecls,
     return grammar;
 }
 
+static inline void installIndent(int level) {
+    for (int i = 0; i < level; i++) {
+        printf("    ");
+    }
+}
+
+
 static inline void installSwitch(char *s) {
     printf("switch (%s)", s);
 }
@@ -492,4 +516,190 @@ static inline void installMemberAccess(char *target, char *member) {
   printf("%s.%s", target, member);
 }
 
+void generateCode(Grammar *grammar) {
+    if (!grammar) {
+        error("Invalid grammar");
+        return;
+    }
 
+    
+    if (grammar->preludeSigma) {
+        printf("%s", grammar->preludeSigma);
+    }
+   
+    generateStateFunction(grammar);
+    
+    for (int i = 0; i < grammar->numDecls; i++) {
+        generateDeclaration(grammar->decls[i]);
+    }
+    
+    for (int i = 0; i < grammar->numRules; i++) {
+        generateRule(grammar->rules[i]);
+    }
+    
+    if (grammar->concludeSigma) {
+        printf("%s", grammar->concludeSigma);
+    }
+}
+
+
+void generateDeclaration(Declaration *declaration) {
+    if (!declaration) {
+        error("Invalid declaration");
+        return;
+    }
+
+    for (int i = 0; i < declaration->numTerms; i++) {
+        generateRule(declaration->startRule);
+    }
+}
+
+void generateRule(Rule *rule) {
+    if (!rule) {
+        error("Invalid rule");
+        return;
+    }
+
+    
+    installIndent(installIndentLevel);
+    printf("/* Rule for %s */\n", rule->nonterm);
+    
+    generateTree(rule->tree);
+
+    
+    if (rule->semanticAction) {
+        installIndent(installIndentLevel);
+        installBlockOpen();
+        installIndentLevel++;
+        installIndent(installIndentLevel);
+        printf("%s", rule->semanticAction);
+        installIndentLevel--;
+        installIndent(installIndentLevel);
+        installBlockClose();
+    }
+}
+
+void generateTree(Tree *tree) {
+    if (!tree) {
+        error("Invalid tree");
+        return;
+    }
+    
+    if (tree->leftSubtree) {
+        generateTree(tree->leftSubtree);
+    }
+    
+    generateTerm(tree->term);
+    
+    if (tree->rightSubtree) {
+        generateTree(tree->rightSubtree);
+    }
+}
+
+void generateTerm(Term *term) {
+    if (!term) {
+        error("Invalid term");
+        return;
+    }
+
+    installIndent(installIndentLevel);
+    switch (term->kind) {
+        case TERM_IR_OPCODE:
+            installObjectMacro("IR_OPCODE", term->value);
+            break;
+        case TERM_NONTERM:
+            installObjectMacro("NONTERM", term->value);
+            break;
+    }
+}
+
+void generateCost(Cost *cost) {
+    if (!cost) {
+        error("Invalid cost");
+        return;
+    }    
+    installIndent(installIndentLevel);
+    installFunctionCall("createCost", cost->cost);
+}
+
+void generateTreeMatcher(Tree *tree, char *nonterm, int costIndex) {
+    if (tree == NULL) {
+        
+        printf("return createTree(%s, NULL, NULL);", nonterm);
+    } else {
+        
+        int leftCostIndex = costIndex * 2 + 1;
+        int rightCostIndex = costIndex * 2 + 2;
+
+        printf("{\n");
+        installBlockOpen();
+
+        
+        printf("Tree *leftSubtree = ");
+        generateTreeMatcher(tree->leftSubtree, nonterm, leftCostIndex);
+        printf(";\n");
+
+        
+        printf("Tree *rightSubtree = ");
+        generateTreeMatcher(tree->rightSubtree, nonterm, rightCostIndex);
+        printf(";\n");
+
+        
+        printf("if (t->cost[%d] > t->cost[%d]) {\n", costIndex, leftCostIndex);
+        installBlockOpen();
+        printf("t->cost[%d] = t->cost[%d];\n", costIndex, leftCostIndex);
+        printf("t->rule[%d] = %s;\n", costIndex, nonterm);
+        installBlockClose();
+        printf("}\n");
+
+        printf("if (t->cost[%d] > t->cost[%d]) {\n", costIndex, rightCostIndex);
+        installBlockOpen();
+        printf("t->cost[%d] = t->cost[%d];\n", costIndex, rightCostIndex);
+        printf("t->rule[%d] = %s;\n", costIndex, nonterm);
+        installBlockClose();
+        printf("}\n");
+
+        
+        printf("return createTree(%s, leftSubtree, rightSubtree);", nonterm);
+
+        installBlockClose();
+        printf("}\n");
+    }
+}
+
+void generateStateFunction(Grammar *grammar) {
+    printf("State *state(Tree *t) {\n");
+    installBlockOpen();
+
+    installSwitch("t->term->value");
+
+    Rule **rules = grammar->rules;
+    for (int i = 0; i < grammar->numRules; ++i) {
+        printf("case %s: ", rules[i]->nonterm);
+        generateTreeMatcher(rules[i]->tree);
+        printf(" break;");
+    }
+
+    installBlockClose();
+    printf("}\n\n");
+}
+
+void generateSwitch(Rule *rule) {
+    if (!rule) {
+        error("Invalid rule");
+        return;
+    }
+
+    installIndent(1);
+    printf("case %s:\n", rule->nonterm);
+    installIndent(2);
+    printf("if (!%s) return %s;\n", "t", rule->semanticAction);
+}
+
+void error(const char *msg, ...) {
+    va_list args;
+    va_start(args, msg);
+    vfprintf(stderr, msg, args);
+    fprintf(stderr, "\n");
+    va_end(args);
+}
