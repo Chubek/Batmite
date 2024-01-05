@@ -302,7 +302,7 @@ IRProgram createIRProgram(IRFunction *functions, int numFunctions) {
 }
 
 Node *insert(Node *head, int data) {
-  Node *newNode = (Node *)zalloc(sizeof(Node));
+  Node *newNode = (Node *)zAlloc(sizeof(Node));
   newNode->data = data;
   newNode->next = head;
   return newNode;

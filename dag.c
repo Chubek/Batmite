@@ -27,7 +27,7 @@ typedef struct {
 DAGNode *createDAGNode(bool isConstant, IROpcode opcode, SSAOperand result,
                        IROperand operand1, IROperand operand2, DAGNode *left,
                        DAGNode *right) {
-  DAGNode *node = (DAGNode *)zalloc(sizeof(DAGNode));
+  DAGNode *node = (DAGNode *)zAlloc(sizeof(DAGNode));
   node->isConstant = isConstant;
   node->opcode = opcode;
   node->result = result;

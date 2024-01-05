@@ -22,27 +22,36 @@ typedef struct {
 
 typedef struct {
 	Term *term;
-	Tree *l, *r;
+	Tree *leftSubtree, *rightSubtree;
 } Tree;
 
 typedef struct {
 	char *nonterm;
 	Tree *tree;
 	Cost *cost;
-	char *action;
+	char *semanticAction;
 } Rule;
 
 typedef struct {
 	Term **terms;
-	int numterms;
+	int numTerms;
 	Rule *startRule;
 } Declaration;
 
 typedef struct {
 	Declaration **decls;
-	int numdecls;
-	char *prelude, conclude;
+	int numDecls;
+	char *preludeSigma, concludeSigma;
 } Grammar;
+
+Term *createTerm(TermKind kind, char *value);
+Cost *createCost(int costValue);
+Tree *createTree(Term *term, Tree *leftSubtree, Tree *rightSubtree);
+Tree *addLeftSubtree(Tree **root, Term *term);
+Tree *addRightSubtree(Tree **root, Term *term);
+Rule *createRule(char *nonterm, Tree *tree, Cost *cost, char *semanticAction);
+Declaration* createDeclaration(Term **terms, int numTerms, Rule *startRule);
+Grammar* createGrammar(Declaration **decls, int numDecls, char *preludeSigma, char *concludeSigma);
 
 %}
 
@@ -50,6 +59,10 @@ typedef struct {
     char *stringVal;
     char *sigmaVal;
     int intVal;
+    Grammar *grammarVal;
+    Tree *treeVal;
+    Rule *ruleVal;
+    Cost *costVal;
 }
 
 %token PERCENT_PERCENT PERCENT_START PERCENT_TERM  NEWLINE
@@ -233,13 +246,13 @@ int yylex(void) {
 	}
     }
     else if (npcntpcnt == 2) {
-	char *buffer = (char*)zalloc(MAX_TOKEN_LENGTH);
+	char *buffer = (char*)zAlloc(MAX_TOKEN_LENGTH);
 	int i = 0;
 	int step = 1;
 	while ((c = getchar()) != EOF) {
 		buffer[i++] = c;
 		if (i == MAX_TOKEN_LENGTH - 1) {
-			buffer = (char*)zealloc(buffer, MAX_TOKEN_LENGTH * ++step);	
+			buffer = (char*)zRealloc(buffer, MAX_TOKEN_LENGTH * ++step);	
 		}
 	}
 	yylval.sigmaVal = buffer;
@@ -252,47 +265,70 @@ int yylex(void) {
     return 0; 
 }
 
-static const *char boilerplate = <<< END_HEADER_STR
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-
-@@ DEFINITIONS @@
-
-#define stmt_NT		1
-#define disp_NT		2
-#define rc_NT		3
-#define reg_NT		4
-#define con_NT		5
-
-typedef struct State State;
-typedef struct {
-	IR_OPCODE_TYPE opcode;
-	State *left;
-	State *right;
-	struct {
-	   stmt : 2;
-	   disp : 2;
-	   rc   : 2;
-	   reg  : 2;
-	   con  : 2;
-	} cost;
-	struct {
-	   stmt : 2;
-	   disp : 2;
-	   rc   : 2;
-	   reg  : 2;
-	   con  : 2;
-	} rule;
-} State;
-
-LABEL_TYPE fnLabel(NODEPTR_TYPE nodeP) {
-	if (nodeP) {
-		LABEL_TYPE left   = label(LEFT_CHILD(nodeP));
-		LABEL_TYPE right  = label(RIGHT_CHILD(nodeP));
-		return STATE_LABEL(nodeP) = state(OP_LABEL(nodeP), left, right);
-	} else {
-	 	return LABEL_DEFAULT;
-	}
+Term* createTerm(TermKind kind, char *value) {
+    Term *term = (Term*)zAlloc(sizeof(Term));
+    term->kind = kind;
+    term->value = value;
+    return term;
 }
+
+Cost* createCost(int costValue) {
+    Cost *cost = (Cost*)zAlloc(sizeof(Cost));
+    cost->cost = costValue;
+    return cost;
+}
+
+Tree* createTree(Term *term, Tree *leftSubtree, Tree *rightSubtree) {
+    Tree *tree = (Tree*)zAlloc(sizeof(Tree));
+    tree->term = term;
+    tree->leftSubtree = leftSubtree;
+    tree->rightSubtree = rightSubtree;
+    return tree;
+}
+
+Tree* addLeftSubtree(Tree **root, Term *term) {
+    if (*root == NULL) {
+        fprintf(stderr, "Error: Cannot add left subtree to a NULL tree.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    (*root)->leftSubtree = createTree(term, NULL, NULL);
+    return (*root)->leftSubtree;
+}
+
+Tree* addRightSubtree(Tree **root, Term *term) {
+    if (*root == NULL) {
+        fprintf(stderr, "Error: Cannot add right subtree to a NULL tree.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    (*root)->rightSubtree = createTree(term, NULL, NULL);
+    return (*root)->rightSubtree;
+}
+
+Rule* createRule(char *nonterm, Tree *tree, Cost *cost, char *semanticAction) {
+    Rule *rule = (Rule*)zAlloc(sizeof(Rule));
+    rule->nonterm = nonterm;
+    rule->tree = tree;
+    rule->cost = cost;
+    rule->semanticAction = semanticAction;
+    return rule;
+}
+
+Declaration* createDeclaration(Term **terms, int numTerms, Rule *startRule) {
+    Declaration *declaration = (Declaration*)zAlloc(sizeof(Declaration));
+    declaration->terms = terms;
+    declaration->numTerms = numTerms;
+    declaration->startRule = startRule;
+    return declaration;
+}
+
+Grammar* createGrammar(Declaration **decls, int numDecls, char *preludeSigma, char *concludeSigma) {
+    Grammar *grammar = (Grammar*)zAlloc(sizeof(Grammar));
+    grammar->decls = decls;
+    grammar->numDecls = numDecls;
+    grammar->preludeSigma = preludeSigma;
+    grammar->concludeSigma = concludeSigma;
+    return grammar;
+}
+

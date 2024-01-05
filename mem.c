@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
 
 uint32_t hashPointer(const void *key) {
   const uint8_t *p = (const uint8_t *)key;
@@ -32,7 +34,7 @@ struct {
 
 void initZHeap(ZHeap *zheap) { zheap->head = NULL; }
 
-void *zalloc(ZHeap *zheap, size_t size) {
+void *zAlloc(ZHeap *zheap, size_t size) {
   ZNode *newZNode = (ZNode *)calloc(1, sizeof(ZNode));
   if (!newZNode) {
     fprintf(stderr, "Memory allocation failed\n");
@@ -52,7 +54,7 @@ void *zalloc(ZHeap *zheap, size_t size) {
   return newZNode->data;
 }
 
-void *zealloc(ZHeap *zheap, void *memory, size_t new_size) {
+void *zRealloc(ZHeap *zheap, void *memory, size_t new_size) {
   ZNode *currentZNode = zhead->head;
   uint32_t searchHash = hashPointer(memory);
 
@@ -85,3 +87,51 @@ void zfree(ZHeap *zheap) {
 
   zheap->head = NULL;
 }
+
+char* template_string(const char* template, ...) {
+    va_list args;
+    va_start(args, template);
+
+    
+    size_t len = 0;
+    const char* ptr = template;
+    while (*ptr) {
+        if (*ptr == '{' && *(ptr + 1) == '}') {            
+            ptr += 2;            
+            len += strlen(va_arg(args, const char*));
+        } else {            
+            len++;
+            ptr++;
+        }
+    }
+
+    
+    char* result = (char*)malloc(len + 1);
+    if (!result) {
+        fprintf(stderr, "Memory allocation error\n");
+        va_end(args);
+        return NULL;
+    }
+
+    
+    char* dest = result;
+    ptr = template;
+    while (*ptr) {
+        if (*ptr == '{' && *(ptr + 1) == '}') {            
+            const char* arg = va_arg(args, const char*);
+            size_t arg_len = strlen(arg);
+            zMemCopy(dest, arg, arg_len);
+            dest += arg_len;
+            ptr += 2; 
+        } else {            
+            *dest = *ptr;
+            dest++;
+            ptr++;
+        }
+    }
+
+    *dest = '\0'; 
+    va_end(args);
+    return result;
+}
+

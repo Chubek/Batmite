@@ -14,7 +14,7 @@ bool isList(const Atom *atom) { return !strncmp(atom->value, "LIST", 4); }
 
 // Function to create a new atom
 Atom *createAtom(const char *value) {
-  Atom *atom = (Atom *)zalloc(sizeof(Atom));
+  Atom *atom = (Atom *)zAlloc(sizeof(Atom));
   if (atom == NULL) {
     perror("Memory allocation error");
     exit(EXIT_FAILURE);
@@ -31,7 +31,7 @@ Atom *createAtom(const char *value) {
 void addChild(Atom *parent, Atom *child) {
   parent->numChildren++;
   parent->children =
-      (Atom **)zealloc(parent->children, parent->numChildren * sizeof(Atom *));
+      (Atom **)zRealloc(parent->children, parent->numChildren * sizeof(Atom *));
   if (parent->children == NULL) {
     perror("Memory allocation error");
     exit(EXIT_FAILURE);

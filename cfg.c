@@ -50,14 +50,14 @@ ControlFlowGraph createControlFlowGraph(void) {
 
 void addEdge(CFGBlock *source, CFGBlock *destination) {
 
-  source->successors = zealloc(source->successors,
+  source->successors = zRealloc(source->successors,
                                (source->numSuccessors + 1) * sizeof(CFGEdge));
   source->successors[source->numSuccessors].source = source;
   source->successors[source->numSuccessors].destination = destination;
   source->numSuccessors++;
 
   destination->predecessors =
-      zealloc(destination->predecessors,
+      zRealloc(destination->predecessors,
               (destination->numPredecessors + 1) * sizeof(CFGEdge));
   destination->predecessors[destination->numPredecessors].source = source;
   destination->predecessors[destination->numPredecessors].destination =
@@ -66,7 +66,7 @@ void addEdge(CFGBlock *source, CFGBlock *destination) {
 }
 
 void initializeCFG(ControlFlowGraph *cfg) {
-  cfg->cfgBlocks = zalloc(2 * sizeof(CFGBlock));
+  cfg->cfgBlocks = zAlloc(2 * sizeof(CFGBlock));
 
   cfg->cfgBlocks[0] = createCFGBlock();
   cfg->cfgBlocks[1] = createCFGBlock();

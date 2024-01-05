@@ -17,7 +17,7 @@ typedef struct {
 } CommonSubexpressionList;
 
 DataFlowNode *createDataFlowNode(char *name) {
-  DataFlowNode *node = (DataFlowNode *)zalloc(sizeof(DataFlowNode));
+  DataFlowNode *node = (DataFlowNode *)zAlloc(sizeof(DataFlowNode));
   node->name = name;
   node->dependencies = NULL;
   node->numDependencies = 0;
@@ -27,13 +27,13 @@ DataFlowNode *createDataFlowNode(char *name) {
 }
 
 void addDependency(DataFlowNode *dependent, DataFlowNode *dependency) {
-  dependent->dependencies = (DataFlowNode **)zealloc(
+  dependent->dependencies = (DataFlowNode **)zRealloc(
       dependent->dependencies,
       (dependent->numDependencies + 1) * sizeof(DataFlowNode *));
   dependent->dependencies[dependent->numDependencies] = dependency;
   dependent->numDependencies++;
 
-  dependency->dependents = (DataFlowNode **)zealloc(
+  dependency->dependents = (DataFlowNode **)zRealloc(
       dependency->dependents,
       (dependency->numDependents + 1) * sizeof(DataFlowNode *));
   dependency->dependents[dependency->numDependents] = dependent;
