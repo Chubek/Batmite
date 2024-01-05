@@ -3,9 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-int yyerror(const char *msg);
-int yylex(void);
-
 typedef enum {
 	TERM_IR_OPCODE,
 	TERM_NONTERM,
@@ -40,18 +37,24 @@ typedef struct {
 
 typedef struct {
 	Declaration **decls;
+	Rule **rules;
 	int numDecls;
+	int numRules;
 	char *preludeSigma, concludeSigma;
 } Grammar;
 
 Term *createTerm(TermKind kind, char *value);
 Cost *createCost(int costValue);
 Tree *createTree(Term *term, Tree *leftSubtree, Tree *rightSubtree);
-Tree *addLeftSubtree(Tree **root, Term *term);
-Tree *addRightSubtree(Tree **root, Term *term);
 Rule *createRule(char *nonterm, Tree *tree, Cost *cost, char *semanticAction);
+Rule *createRuleList(Rule **rules, int numRules);
 Declaration* createDeclaration(Term **terms, int numTerms, Rule *startRule);
-Grammar* createGrammar(Declaration **decls, int numDecls, char *preludeSigma, char *concludeSigma);
+Grammar* createGrammar(Declaration **decls, int numDecls, 
+			Rule **rules, int numRules,
+			char *preludeSigma, char *concludeSigma);
+
+int yyparser(const char *msg);
+int yylex(void);
 
 %}
 
@@ -72,49 +75,91 @@ Grammar* createGrammar(Declaration **decls, int numDecls, char *preludeSigma, ch
 %token <sigmaVal> SEMANTIC_ACTION PRELUDE CONCLUDE
 %token <stringVal> NONTERM IR_OPCODE
 %token <intVal> INTEGER
+%token <grammarVal> grammar
 
 %type <stringVal> nonterm term
 %type <intVal> cost tree
 
 %%
 
-grammar: NEWLINE
-       | declaration_list PERCENT_PERCENT rule_list
-       | PRELUDE declarations_list PERCENT_PERCENT rule_list
-       | PRELUDE declarations_list PERCENT_PERCENT rule_list PERCENT_PERCENT CONCLUDE
-       ;
+grammar: NEWLINE {
+    
+}
+| declaration_list PERCENT_PERCENT rule_list {
+    $$ = createGrammar($1, $<intVal>1, $3, $<intVal>3, NULL, NULL);
+}
+| PRELUDE declarations_list PERCENT_PERCENT rule_list {
+    $$ = createGrammar($2, $<intVal>2, $4, $<intval>4, $1, NULL);
+}
+| PRELUDE declarations_list PERCENT_PERCENT rule_list PERCENT_PERCENT CONCLUDE {
+    $$ = createGrammar($2, $<intVal>2, $4, $<intval>4, $1, $6);
+};
 
-declaration_list: /* Empty */ 
-	        | declaration_list declaration
-		;
+declaration_list:
+| declaration_list declaration {
+    $$ = zRealloc($1, ($<intVal>1 + 1) * sizeof(Declaration *));
+    $$[$<intVal>1] = $2;
+    $<intVal>1 += 1;
+}
+| /* Empty */ {
+    $$ = NULL;
+    $<intVal>1 = 0;
+};
 
-declaration: PERCENT_START nonterm
-           | PERCENT_TERM IDENTIFIER '=' INTEGER
-           ;
+declaration: PERCENT_START nonterm {
+    $$ = createDeclaration(NULL, 0, createRule($2, NULL, NULL, NULL));
+}
+| PERCENT_TERM IDENTIFIER '=' INTEGER {
+    Term *term = createTerm(TERM_IR_OPCODE, $3);
+    Rule *rule = createRule($2, NULL, createCost($5), NULL);
+    $$ = createDeclaration(&term, 1, rule);
+};
 
-rule_list: /* Empty */ 
-	 | rule_list rule
-	 ;
+rule_list:
+| rule_list rule {
+    $$ = zRealloc($1, ($<intVal>1 + 1) * sizeof(Rule *));
+    $$[$<intVal>1] = $2;
+    $<intVal>1 += 1;
+}
+| /* Empty */ {
+    $$ = NULL;
+    $<intVal>1 = 0;
+};
 
-rule: NONTERM ':' tree '=' cost ';'
-    | NONTERM ':' tree '=' cost  SEMANTIC_ACTION  ';'
-    ;
+rule: nonterm ':' tree '=' cost ';' {
+    $$ = createRule($1, $3, $5, NULL);
+}
+| nonterm ':' tree '=' cost SEMANTIC_ACTION ';' {
+    $$ = createRule($1, $3, $5, $6);
+};
 
-cost: '(' INTEGER ')'
-    ;
+cost: '(' INTEGER ')' {
+    $$ = createCost($2);
+};
 
-tree: /* Empty */
-    | '|'
-    | term '(' tree ')'
-    | term
-    ;
+tree: '|' {
+    $$ = NULL;  
+}
+| term '(' tree ',' tree ')' {
+    $$ = createTree($1, $3, $5);
+}
+| term '(' tree ')' {
+    $$ = createTree($1, $3, NULL);
+}
+| term {
+    $$ = createTree($1, NULL, NULL);
+};
 
-term: IR_OPCODE
-    | NONTERM
-    ;
+term: IR_OPCODE {
+    $$ = createTerm(TERM_IR_OPCODE, $1);
+}
+| NONTERM {
+    $$ = createTerm(TERM_NONTERM, $1);
+};
 
-nonterm: NONTERM
-       ;
+nonterm: NONTERM {
+    $$ = $1;
+};
 
 %%
 
@@ -265,20 +310,20 @@ int yylex(void) {
     return 0; 
 }
 
-Term* createTerm(TermKind kind, char *value) {
+Term *createTerm(TermKind kind, char *value) {
     Term *term = (Term*)zAlloc(sizeof(Term));
     term->kind = kind;
     term->value = value;
     return term;
 }
 
-Cost* createCost(int costValue) {
+Cost *createCost(int costValue) {
     Cost *cost = (Cost*)zAlloc(sizeof(Cost));
     cost->cost = costValue;
     return cost;
 }
 
-Tree* createTree(Term *term, Tree *leftSubtree, Tree *rightSubtree) {
+Tree *createTree(Term *term, Tree *leftSubtree, Tree *rightSubtree) {
     Tree *tree = (Tree*)zAlloc(sizeof(Tree));
     tree->term = term;
     tree->leftSubtree = leftSubtree;
@@ -286,27 +331,7 @@ Tree* createTree(Term *term, Tree *leftSubtree, Tree *rightSubtree) {
     return tree;
 }
 
-Tree* addLeftSubtree(Tree **root, Term *term) {
-    if (*root == NULL) {
-        fprintf(stderr, "Error: Cannot add left subtree to a NULL tree.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    (*root)->leftSubtree = createTree(term, NULL, NULL);
-    return (*root)->leftSubtree;
-}
-
-Tree* addRightSubtree(Tree **root, Term *term) {
-    if (*root == NULL) {
-        fprintf(stderr, "Error: Cannot add right subtree to a NULL tree.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    (*root)->rightSubtree = createTree(term, NULL, NULL);
-    return (*root)->rightSubtree;
-}
-
-Rule* createRule(char *nonterm, Tree *tree, Cost *cost, char *semanticAction) {
+Rule *createRule(char *nonterm, Tree *tree, Cost *cost, char *semanticAction) {
     Rule *rule = (Rule*)zAlloc(sizeof(Rule));
     rule->nonterm = nonterm;
     rule->tree = tree;
@@ -315,7 +340,9 @@ Rule* createRule(char *nonterm, Tree *tree, Cost *cost, char *semanticAction) {
     return rule;
 }
 
-Declaration* createDeclaration(Term **terms, int numTerms, Rule *startRule) {
+Rule 
+
+Declaration *createDeclaration(Term **terms, int numTerms, Rule *startRule) {
     Declaration *declaration = (Declaration*)zAlloc(sizeof(Declaration));
     declaration->terms = terms;
     declaration->numTerms = numTerms;
@@ -323,10 +350,14 @@ Declaration* createDeclaration(Term **terms, int numTerms, Rule *startRule) {
     return declaration;
 }
 
-Grammar* createGrammar(Declaration **decls, int numDecls, char *preludeSigma, char *concludeSigma) {
+Grammar *createGrammar(Declaration **decls, int numDecls, 
+			Rule **rules, int numRules;
+			char *preludeSigma, char *concludeSigma) {
     Grammar *grammar = (Grammar*)zAlloc(sizeof(Grammar));
     grammar->decls = decls;
     grammar->numDecls = numDecls;
+    gramamr->rules = rules;
+    grammar->numRules = numRules;
     grammar->preludeSigma = preludeSigma;
     grammar->concludeSigma = concludeSigma;
     return grammar;
