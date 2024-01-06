@@ -23,11 +23,14 @@ typedef struct {
 
 typedef struct {
      Rule **rules;
-     Declaration **decls;
+     Declaration **decls, *startRule;
      int numRules, numDecls;
-     Rule *startingRule;
+     char *definitions, userCode;
 } Spec;
 
+Rule *startingRule;
+
+Spec *createSpec
 Declaration* createDecl(char *start_nonterm, char *identifier, int value);
 Term* createTerm(char *identifier, int value);
 Rule* createRule(char *nonterm, Term *term, int value);
@@ -63,7 +66,7 @@ spec: NEWLINE { printf("Parsed successfully!\n"); }
     | USER_CODE
     ;
 
-dcl: PERCENT_START nonterm { $$ = createDecl($2, NULL, 0); }
+dcl: PERCENT_START nonterm { startingRule = createRule($2, NULL, 0); }
     | PERCENT_TERM IDENTIFIER '=' INTEGER { $$ = createDecl(NULL, $2, $4); }
     ;
 
