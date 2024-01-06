@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Data structures
+
 typedef struct {
     int is_terminal;
     char *identifier;
@@ -21,13 +21,19 @@ typedef struct {
     int value;
 } Rule;
 
-// Function prototypes
+typedef struct {
+     Rule **rules;
+     Declaration **decls;
+     int numRules, numDecls;
+     Rule *startingRule;
+} Spec;
+
 Declaration* createDecl(char *start_nonterm, char *identifier, int value);
 Term* createTerm(char *identifier, int value);
 Rule* createRule(char *nonterm, Term *term, int value);
 void yyerror(const char *msg);
+%}
 
-// Yacc declarations
 %union {
     char *stringVal;
     int intVal;
@@ -36,7 +42,10 @@ void yyerror(const char *msg);
     Rule *ruleVal;
 }
 
-%token PERCENT_PERCENT PERCENT_START PERCENT_TERM NEWLINE COLON EQUAL SEMICOLON LPAREN RPAREN COMMA IDENTIFIER INTEGER
+%token PERCENT_PERCENT PERCENT_START PERCENT_TERM NEWLINE COLON EQUAL SEMICOLON LPAREN RPAREN COMMA IDENTIFIER 
+
+%token <intVal> INTEGER
+%token <stringVal> DEFINITIONS USER_CODE
 
 %type <stringVal> nonterm
 %type <declarationVal> dcl
@@ -49,97 +58,183 @@ void yyerror(const char *msg);
 
 spec: NEWLINE { printf("Parsed successfully!\n"); }
     | dcl PERCENT_PERCENT rule_list PERCENT_PERCENT { printf("Parsed successfully!\n"); }
-    | PERCENT_PERCENT { printf("Parsed successfully!\n"); };
+    | PERCENT_PERCENT { printf("Parsed successfully!\n"); }
+    | DEFINITIONS  
+    | USER_CODE
+    ;
 
 dcl: PERCENT_START nonterm { $$ = createDecl($2, NULL, 0); }
-    | PERCENT_TERM IDENTIFIER '=' INTEGER { $$ = createDecl(NULL, $2, $4); };
+    | PERCENT_TERM IDENTIFIER '=' INTEGER { $$ = createDecl(NULL, $2, $4); }
+    ;
 
 rule_list: rule_list rule { /* Add code for handling rule list */ }
     | /* Empty */ { /* Add code for empty rule list */ };
 
 rule: nonterm COLON tree EQUAL INTEGER cost SEMICOLON { /* Add code for handling rule */ }
-    | nonterm COLON tree EQUAL INTEGER SEMICOLON { /* Add code for handling rule without cost */ };
+    | nonterm COLON tree EQUAL INTEGER SEMICOLON { /* Add code for handling rule without cost */ }
+    ;
 
 cost: LPAREN INTEGER RPAREN { $$ = $2; }
-    | /* Empty */ { $$ = 0; };
+    | /* Empty */ { $$ = 0; }
+    ;
 
 tree: term LPAREN tree COMMA tree RPAREN { /* Add code for handling tree */ }
     | term LPAREN tree RPAREN { /* Add code for handling tree with one subtree */ }
     | term { /* Add code for handling single term */ }
-    | nonterm { /* Add code for handling nonterminal */ };
+    | nonterm { /* Add code for handling nonterminal */ }
+    ;
 
 term: IDENTIFIER { $$ = createTerm($1, 0); }
-    | INTEGER { $$ = createTerm(NULL, $1); };
+    | INTEGER { $$ = createTerm(NULL, $1); }
+    ;
 
-nonterm: IDENTIFIER { $$ = $1; };
+nonterm: IDENTIFIER { $$ = $1; }
+       ;
 
 %%
 
-// Lexical Analyzer
+int numberOfPercentPercent = 0;
+
 int yylex(void) {
-    int c;
-    // Implement a basic lexer for demonstration
-    while ((c = getchar()) == ' ' || c == '\t' || c == '\n') {
-        // Skip whitespace
+    char c = getchar();
+
+    while (c == ' ' || c == '\t' || c == '\n') {
+        c = getchar();
     }
 
     if (c == EOF) {
-        return 0; // End of file
+        return 0; 
     }
 
-    // Tokenize based on single characters for simplicity
-    switch (c) {
-        case '%': 
-		if ((c = getchar) == '%')
-			return PERCENT_PERCENT;
-		ungetc();
-        case '{': return PERCENT_START;
-        case '}': return PERCENT_TERM;
-        case '\n': return NEWLINE;
-        case ':': return COLON;
-        case '=': return EQUAL;
-        case ';': return SEMICOLON;
-        case '(': return LPAREN;
-        case ')': return RPAREN;
-        case ',': return COMMA;
-        default:
-            if (isalpha(c)) {
-                char buffer[1024];
-                int i = 0;
-                do {
+    if (c == '%') {
+        char buffer[MAX_TOKEN_LENGTH];
+        int i = 0;
+
+        if ((c = getchar()) == 't') {
+            while ((c = getchar()) != '\n') {
+                if (i < MAX_TOKEN_LENGTH - 1) {
                     buffer[i++] = c;
-                    c = getchar();
-                } while (isalnum(c) || c == '_');
-                buffer[i] = '\0';
-                yylval.stringVal = strdup(buffer);
-                ungetc(c, stdin);
-                return IDENTIFIER;
-            } else if (isdigit(c)) {
-                char buffer[1024];
-                int i = 0;
-                do {
-                    buffer[i++] = c;
-                    c = getchar();
-                } while (isdigit(c));
-                buffer[i] = '\0';
-                yylval.intVal = atoi(buffer);
-                ungetc(c, stdin);
-                return INTEGER;
-            } else {
-                yyerror("Unexpected character");
+                }
             }
+            buffer[i] = '\0';
+            if (strcmp(buffer, "oken") == 0) {
+                return IDENTIFIER;
+            } else if (strcmp(buffer, "ype") == 0) {
+                return INTEGER;
+            }
+        }
+
+        else if (c == 's') {
+            while ((c = getchar()) != '\n') {
+                if (i < MAX_TOKEN_LENGTH - 1) {
+                    buffer[i++] = c;
+                }
+            }
+            buffer[i] = '\0';
+            if (strcmp(buffer, "tart") == 0) {
+                return PERCENT_START;
+            } else if (strcmp(buffer, "erm") == 0) {
+                return PERCENT_TERM;
+            }
+        }
+
+        else if (c == '%') {
+            if ((c = getchar()) == '%') {
+	   	numberOfPercentPercent++;
+                return PERCENT_PERCENT;
+            } 
+        }
     }
 
-    return 0; // This should not be reached
+    else if (c >= '0' && c <= '9') {
+        char buffer[MAX_TOKEN_LENGTH];
+        int i = 0;
+
+        while (c >= '0' && c <= '9') {
+            if (i < MAX_TOKEN_LENGTH - 1) {
+                buffer[i++] = c;
+            }
+            c = getchar();
+        }
+
+        buffer[i] = '\0';
+        yylval.intVal = atoi(buffer);
+        ungetc(c, stdin);
+        return INTEGER;
+    }
+
+    else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+        char buffer[MAX_TOKEN_LENGTH];
+        int i = 0;
+
+        while ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+            if (i < MAX_TOKEN_LENGTH - 1) {
+                buffer[i++] = c;
+            }
+            c = getchar();
+        }
+
+        buffer[i] = '\0';
+        yylval.stringVal = zStrDup(buffer);
+        ungetc(c, stdin);
+        return IDENTIFIER;
+    }
+
+    else if (c == '{') {
+	char buffer[MAX_TOKEN_LENGTH];
+	int i = 0;
+	int nbraces = 1;
+
+	if ((c = getchar()) = '%') {
+		for (;;) {
+			buffer[i++] = c = getchar();
+			if (c == '%') {
+				if ((c = getchar()) == '}') {
+					yylval.stringVal = zStrDup(&yytext[0]);
+					return PRELUDE;
+				}
+				ungetc();
+			}
+		}
+	} else {	
+		while (nbraces > 0) {	
+			buffer[i++] = c = getchar();
+			if (c == '{')
+				nbraces++;
+			else if (c == '}')
+				nbraces--;
+		}
+		yylval.stringVal = zStrDup(&buffer[0]);
+		return SEMANTIC_ACTION;	
+	}
+    }
+    else if (numberOfPercentPercent == 2) {
+	char *buffer = (char*)zAlloc(MAX_TOKEN_LENGTH);
+	int i = 0;
+	int step = 1;
+	while ((c = getchar()) != EOF) {
+		buffer[i++] = c;
+		if (i == MAX_TOKEN_LENGTH - 1) {
+			buffer = (char*)zRealloc(buffer, MAX_TOKEN_LENGTH * ++step);	
+		}
+	}
+	yylval.stringVal = buffer;
+	return CONDLUE;
+    }
+
+    else
+        return c;
+
+    return 0; 
 }
 
-// Error handler
+
 void yyerror(const char *msg) {
     fprintf(stderr, "Error: %s\n", msg);
     exit(1);
 }
 
-// Helper functions
+
 Declaration* createDecl(char *start_nonterm, char *identifier, int value) {
     Declaration *declaration = (Declaration *)malloc(sizeof(Declaration));
     declaration->start_nonterm = start_nonterm;
