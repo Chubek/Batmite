@@ -36,9 +36,9 @@ typedef struct Node {
 } IRValue;
 
 typedef enum {
-  IR_ADDII,		// add non-constant operands
-  IR_ADDCC,		// add two constant operands
-  IR_ADDCI,		// add a constant and non-constant operand
+  IR_ADDII,
+  IR_ADDCC,
+  IR_ADDCI,
   IR_SUBII,
   IR_ADDCC,
   IR_ADDCI,
@@ -91,6 +91,9 @@ typedef enum {
   IR_ASRII,
   IR_ASRCC,
   IR_ASRCI,
+  IR_RORII,
+  IR_RORCC,
+  IR_RORIC,
   IR_ULTII,
   IR_ULTCC,
   IR_ULTCI,
@@ -134,6 +137,8 @@ typedef enum {
   IR_JUMPFL,
   IR_BLIT,
   IR_CALL,
+  IR_SYSCALL,
+  IR_CIF,
   IR_HALT,
   IR_NOP,
   IR_LDQ,
@@ -148,20 +153,21 @@ typedef enum {
   IR_ALLOCA4B,
   IR_ALLOCA8B,
   IR_ALLOCA16B,
+  IR_CRHEAP,
   IR_TRQ2DS,
-  IR_TRQ2S,
+  IR_TRQ2HS,
   IR_TRQ2BS,
   IR_TRD2HS,
   IR_TRD2BS,
   IR_TRH2BS,
   IR_TRQ2DU,
   IR_TRQ2HU,
-  IR_TRQ2U,
-  IR_TRD2U,
-  IR_TRD2U,
-  IR_TRH2U,
+  IR_TRQ2DU,
+  IR_TRD2HU,
+  IR_TRD2BU,
+  IR_TRH2BU,
   IR_EXD2QS,
-  IR_EXH2S,
+  IR_EXH2DS,
   IR_EXB2QS,
   IR_EXH2DS,
   IR_EXB2DS,
@@ -172,7 +178,7 @@ typedef enum {
   IR_EXH2QU,
   IR_EXB2DU,
   IR_EXB2U,
-  IR_CPDATA,
+  IR_CPYDATA,
   IR_PHI,
 } IROpcode;
 
