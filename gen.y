@@ -1,19 +1,29 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
+typedef enum {
+    TERM_OPCODE,
+    TERM_IDENTIFIER,
+} TermKind;
 
 typedef struct {
-    int is_terminal;
+    bool nonterminal;
+    TermKind kind;
     char *identifier;
-    int value;
+    IROpcode opcode;
 } Term;
 
 typedef struct {
-    char *start_nonterm;
-    char *identifier;
-    int value;
-} Declaration;
+    Term *value;
+    Tree *left, *right;
+} Tree;
+
+typedef struct {
+    char *ident;
+    int extRuleNum;
+} Decl;
 
 typedef struct {
     char *nonterm;
@@ -23,35 +33,47 @@ typedef struct {
 
 typedef struct {
      Rule **rules;
-     Declaration **decls, *startRule;
+     Decl **decls;
      int numRules, numDecls;
      char *definitions, userCode;
 } Spec;
 
-Rule *startingRule;
+Rule *startingRule = NULL;
 
-Spec *createSpec
-Declaration* createDecl(char *start_nonterm, char *identifier, int value);
-Term* createTerm(char *identifier, int value);
+Spec *createSpec(Rule **rules, Decl **decls, 
+			int numRules, int numDecls,
+			char *definitions, char *userCode);
+
+Decl* createDecl(char *ident, int extRuleNum);
+
+Tree *createTree(Term *term, Tree *left, Tree *right);
+
+Term *createOpcodeTerm(IROpcode opcode);
+Term *createIdentTerm(char *ident, bool nonterminal);
+
 Rule* createRule(char *nonterm, Term *term, int value);
+
+int yylex(void);
 void yyerror(const char *msg);
 %}
 
 %union {
     char *stringVal;
     int intVal;
-    Declaration *declarationVal;
+    IROpcode opcodeVal;
+    Decl *declVal;
     Term *termVal;
     Rule *ruleVal;
 }
 
-%token PERCENT_PERCENT PERCENT_START PERCENT_TERM NEWLINE COLON EQUAL SEMICOLON LPAREN RPAREN COMMA IDENTIFIER 
+%token PERCENT_PERCENT PERCENT_START PERCENT_TERM NEWLINE COLON EQUAL SEMICOLON LPAREN RPAREN COMMA
 
 %token <intVal> INTEGER
-%token <stringVal> DEFINITIONS USER_CODE
+%token <opcodeVal> IR_OPCODE
+%token <stringVal> DEFINITIONS USER_CODE IDENTIFIER
 
 %type <stringVal> nonterm
-%type <declarationVal> dcl
+%type <declVal> dcl
 %type <termVal> term
 %type <ruleVal> rule
 %type <intVal> cost
@@ -70,28 +92,28 @@ dcl: PERCENT_START nonterm { startingRule = createRule($2, NULL, 0); }
     | PERCENT_TERM IDENTIFIER '=' INTEGER { $$ = createDecl(NULL, $2, $4); }
     ;
 
-rule_list: rule_list rule { /* Add code for handling rule list */ }
-    | /* Empty */ { /* Add code for empty rule list */ };
+rule_list: rule_list rule {  }
+    |  };
 
-rule: nonterm COLON tree EQUAL INTEGER cost SEMICOLON { /* Add code for handling rule */ }
-    | nonterm COLON tree EQUAL INTEGER SEMICOLON { /* Add code for handling rule without cost */ }
+rule: nonterm COLON tree EQUAL INTEGER cost SEMICOLON {  }
+    | nonterm COLON tree EQUAL INTEGER SEMICOLON {  }
     ;
 
 cost: LPAREN INTEGER RPAREN { $$ = $2; }
-    | /* Empty */ { $$ = 0; }
+    |  { $$ = 0; }
     ;
 
-tree: term LPAREN tree COMMA tree RPAREN { /* Add code for handling tree */ }
-    | term LPAREN tree RPAREN { /* Add code for handling tree with one subtree */ }
-    | term { /* Add code for handling single term */ }
-    | nonterm { /* Add code for handling nonterminal */ }
+tree: term LPAREN tree COMMA tree RPAREN {  }
+    | term LPAREN tree RPAREN {  }
+    | term {  }
+    | nonterm {  }
     ;
 
-term: IDENTIFIER { $$ = createTerm($1, 0); }
-    | INTEGER { $$ = createTerm(NULL, $1); }
+term: IDENTIFIER { $$ = createIdentTerm($1, false); }
+    | IR_OPCODE { $$ = createOpcodeTerm($1); }
     ;
 
-nonterm: IDENTIFIER { $$ = $1; }
+nonterm: IDENTIFIER { $$ = createIdentTerm($1, true); }
        ;
 
 %%
@@ -110,7 +132,7 @@ int yylex(void) {
     }
 
     if (c == '%') {
-        char buffer[MAX_TOKEN_LENGTH];
+        char buffer[MAX_TOKEN_LENGTH] = {0};
         int i = 0;
 
         if ((c = getchar()) == 't') {
@@ -149,8 +171,27 @@ int yylex(void) {
         }
     }
 
+    else if (c == '$') {
+        char buffer[MAX_TOKEN_LENGTH] = {0};
+	buffer[0] = '$';
+	int i = 1;
+
+	while (!isblank((c = getchar())))
+		buffer[i++] = c;
+
+	IROpcode lexOpcodeResult = getOpcode(&buffer[0]);
+
+	if (lexOpcodeResult != IR_PHI) {
+	 	yylval.opcodeVal = lexOpcodeResult;
+		return IR_OPCODE;
+	} else {
+		fprintf(stderr, "Illegal opcode: %s", &buffer[0]);
+		exit(EXIT_FAILURE);
+	}
+    }
+
     else if (c >= '0' && c <= '9') {
-        char buffer[MAX_TOKEN_LENGTH];
+        char buffer[MAX_TOKEN_LENGTH] = {0};
         int i = 0;
 
         while (c >= '0' && c <= '9') {
@@ -167,7 +208,7 @@ int yylex(void) {
     }
 
     else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
-        char buffer[MAX_TOKEN_LENGTH];
+        char buffer[MAX_TOKEN_LENGTH] = {0};
         int i = 0;
 
         while ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
@@ -184,7 +225,7 @@ int yylex(void) {
     }
 
     else if (c == '{') {
-	char buffer[MAX_TOKEN_LENGTH];
+	char buffer[MAX_TOKEN_LENGTH] = {0};
 	int i = 0;
 	int nbraces = 1;
 
@@ -231,6 +272,86 @@ int yylex(void) {
     return 0; 
 }
 
+IROpcode getOpcode(char *input) {
+  if (input[0] == '$') {
+    if (strcmp(input + 1, "IR_ADD") == 0) return IR_ADD;
+    if (strcmp(input + 1, "IR_SUB") == 0) return IR_SUB;
+    if (strcmp(input + 1, "IR_MUL") == 0) return IR_MUL;
+    if (strcmp(input + 1, "IR_DIV") == 0) return IR_DIV;
+    if (strcmp(input + 1, "IR_UDIV") == 0) return IR_UDIV;
+    if (strcmp(input + 1, "IR_UREM") == 0) return IR_UREM;
+    if (strcmp(input + 1, "IR_POW") == 0) return IR_POW;
+    if (strcmp(input + 1, "IR_MOD") == 0) return IR_MOD;
+    if (strcmp(input + 1, "IR_NEG") == 0) return IR_NEG;
+    if (strcmp(input + 1, "IR_AND") == 0) return IR_AND;
+    if (strcmp(input + 1, "IR_OR") == 0) return IR_OR;
+    if (strcmp(input + 1, "IR_XOR") == 0) return IR_XOR;
+    if (strcmp(input + 1, "IR_NOT") == 0) return IR_NOT;
+    if (strcmp(input + 1, "IR_LSR") == 0) return IR_LSR;
+    if (strcmp(input + 1, "IR_LSL") == 0) return IR_LSL;
+    if (strcmp(input + 1, "IR_ASR") == 0) return IR_ASR;
+    if (strcmp(input + 1, "IR_ULT") == 0) return IR_ULT;
+    if (strcmp(input + 1, "IR_ULE") == 0) return IR_ULE;
+    if (strcmp(input + 1, "IR_UGT") == 0) return IR_UGT;
+    if (strcmp(input + 1, "IR_UGE") == 0) return IR_UGE;
+    if (strcmp(input + 1, "IR_UEQ") == 0) return IR_UEQ;
+    if (strcmp(input + 1, "IR_UNE") == 0) return IR_UNE;
+    if (strcmp(input + 1, "IR_LT") == 0) return IR_LT;
+    if (strcmp(input + 1, "IR_LE") == 0) return IR_LE;
+    if (strcmp(input + 1, "IR_GT") == 0) return IR_GT;
+    if (strcmp(input + 1, "IR_GE") == 0) return IR_GE;
+    if (strcmp(input + 1, "IR_EQ") == 0) return IR_EQ;
+    if (strcmp(input + 1, "IR_NE") == 0) return IR_NE;
+    if (strcmp(input + 1, "IR_GOTO") == 0) return IR_GOTO;
+    if (strcmp(input + 1, "IR_RETURN") == 0) return IR_RETURN;
+    if (strcmp(input + 1, "IR_JUMP") == 0) return IR_JUMP;
+    if (strcmp(input + 1, "IR_JUMP_IF_TRUE") == 0) return IR_JUMP_IF_TRUE;
+    if (strcmp(input + 1, "IR_JUMP_IF_FALSE") == 0) return IR_JUMP_IF_FALSE;
+    if (strcmp(input + 1, "IR_BLIT") == 0) return IR_BLIT;
+    if (strcmp(input + 1, "IR_CALL") == 0) return IR_CALL;
+    if (strcmp(input + 1, "IR_HALT") == 0) return IR_HALT;
+    if (strcmp(input + 1, "IR_NOP") == 0) return IR_NOP;
+    if (strcmp(input + 1, "IR_LOAD_QUAD") == 0) return IR_LOAD_QUAD;
+    if (strcmp(input + 1, "IR_STORE_QUAD") == 0) return IR_STORE_QUAD;
+    if (strcmp(input + 1, "IR_LOAD_DOUBLE") == 0) return IR_LOAD_DOUBLE;
+    if (strcmp(input + 1, "IR_STORE_DOUBLE") == 0) return IR_STORE_DOUBLE;
+    if (strcmp(input + 1, "IR_LOAD_HALF") == 0) return IR_LOAD_HALF;
+    if (strcmp(input + 1, "IR_STORE_HALF") == 0) return IR_STORE_HALF;
+    if (strcmp(input + 1, "IR_LOAD_BYTE") == 0) return IR_LOAD_BYTE;
+    if (strcmp(input + 1, "IR_STORE_BYTEi") == 0) return IR_STORE_BYTEi;
+    if (strcmp(input + 1, "IR_NULL") == 0) return IR_NULL;
+    if (strcmp(input + 1, "IR_ALLOCA_4B") == 0) return IR_ALLOCA_4B;
+    if (strcmp(input + 1, "IR_ALLOCA_8B") == 0) return IR_ALLOCA_8B;
+    if (strcmp(input + 1, "IR_ALLOCA_16B") == 0) return IR_ALLOCA_16B;
+    if (strcmp(input + 1, "IR_TRUNC_QUAD2DOUBLE_S") == 0) return IR_TRUNC_QUAD2DOUBLE_S;
+    if (strcmp(input + 1, "IR_TRUNC_QUAD2HALF_S") == 0) return IR_TRUNC_QUAD2HALF_S;
+    if (strcmp(input + 1, "IR_TRUNC_QUAD2BYTE_S") == 0) return IR_TRUNC_QUAD2BYTE_S;
+    if (strcmp(input + 1, "IR_TRUNC_DOUBLE2HALF_S") == 0) return IR_TRUNC_DOUBLE2HALF_S;
+    if (strcmp(input + 1, "IR_TRUNC_DOUBLE2BYTE_S") == 0) return IR_TRUNC_DOUBLE2BYTE_S;
+    if (strcmp(input + 1, "IR_TRUNC_HALF2BYTE_S") == 0) return IR_TRUNC_HALF2BYTE_S;
+    if (strcmp(input + 1, "IR_TRUNC_QUAD2DOUBLE_U") == 0) return IR_TRUNC_QUAD2DOUBLE_U;
+    if (strcmp(input + 1, "IR_TRUNC_QUAD2HALF_U") == 0) return IR_TRUNC_QUAD2HALF_U;
+    if (strcmp(input + 1, "IR_TRUNC_QUAD2BYTE_U") == 0) return IR_TRUNC_QUAD2BYTE_U;
+    if (strcmp(input + 1, "IR_TRUNC_DOUBLE2HALF_U") == 0) return IR_TRUNC_DOUBLE2HALF_U;
+    if (strcmp(input + 1, "IR_TRUNC_DOUBLE2BYTE_U") == 0) return IR_TRUNC_DOUBLE2BYTE_U;
+    if (strcmp(input + 1, "IR_TRUNC_HALF2BYTE_U") == 0) return IR_TRUNC_HALF2BYTE_U;
+    if (strcmp(input + 1, "IR_EXTEND_DOUBLE2QUAD_S") == 0) return IR_EXTEND_DOUBLE2QUAD_S;
+    if (strcmp(input + 1, "IR_EXTEND_HALF2QUAD_S") == 0) return IR_EXTEND_HALF2QUAD_S;
+    if (strcmp(input + 1, "IR_EXTEND_BYTE2QUAD_S") == 0) return IR_EXTEND_BYTE2QUAD_S;
+    if (strcmp(input + 1, "IR_EXTEND_HALF2DOUBLE_S") == 0) return IR_EXTEND_HALF2DOUBLE_S;
+    if (strcmp(input + 1, "IR_EXTEND_BYTE2DOUBLE_S") == 0) return IR_EXTEND_BYTE2DOUBLE_S;
+    if (strcmp(input + 1, "IR_EXTEND_BYTE2HALF_S") == 0) return IR_EXTEND_BYTE2HALF_S;
+    if (strcmp(input + 1, "IR_EXTEND_DOUBLE2QUAD_U") == 0) return IR_EXTEND_DOUBLE2QUAD_U;
+    if (strcmp(input + 1, "IR_EXTEND_HALF2QUAD_U") == 0) return IR_EXTEND_HALF2QUAD_U;
+    if (strcmp(input + 1, "IR_EXTEND_BYTE2QUAD_U") == 0) return IR_EXTEND_BYTE2QUAD_U;
+    if (strcmp(input + 1, "IR_EXTEND_HALF2DOUBLE_U") == 0) return IR_EXTEND_HALF2DOUBLE_U;
+    if (strcmp(input + 1, "IR_EXTEND_BYTE2DOUBLE_U") == 0) return IR_EXTEND_BYTE2DOUBLE_U;
+    if (strcmp(input + 1, "IR_EXTEND_BYTE2HALF_U") == 0) return IR_EXTEND_BYTE2HALF_U;
+    if (strcmp(input + 1, "IR_COPY_DATA") == 0) return IR_COPY_DATA;
+  }
+  
+  return IR_PHI;
+}
 
 void yyerror(const char *msg) {
     fprintf(stderr, "Error: %s\n", msg);
@@ -238,8 +359,8 @@ void yyerror(const char *msg) {
 }
 
 
-Declaration* createDecl(char *start_nonterm, char *identifier, int value) {
-    Declaration *declaration = (Declaration *)malloc(sizeof(Declaration));
+Decl* createDecl(char *start_nonterm, char *identifier, int value) {
+    Decl *declaration = (Decl *)malloc(sizeof(Decl));
     declaration->start_nonterm = start_nonterm;
     declaration->identifier = identiier;
     declaration->value = value;
