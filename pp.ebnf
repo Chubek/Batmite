@@ -1,0 +1,47 @@
+{{
+	This project contains several preprocessors in Perl.
+
+	- `treepp.pl`: Transforms tree grammars into instantiation of trees based on given macros/functions.
+	- `execpp.pl`: Excutes inline commands and emits output.
+
+	- `herepp.pl`: Preprocesses here-strings into legal C strings.
+
+
+	The grammar for all these preprocessors in given below.
+
+}}
+
+{ A. Grammar: TreePP; Author: Chubak Bidpaa }
+
+tree-decl 	::= "%tree" [ tree-storage ] tree-name tree-value [ tree-left ] [ tree-right ] .
+
+tree-storage    ::= "%static" | "%heap" .
+
+tree-name 	::= "%name" tree-child .
+tree-value	::= "%value" tree-node .
+tree-right 	::= "%right" tree-child .
+tree-left	::= "%left" tree-child .
+
+tree-child	::= lowercasse { lowercase } .
+tree-node	::= uppercase { uppercase } .
+
+lowercase 	::= 'a' | 'b' | 'c' | ... | 'z' .
+uppercase  	::= 'A' | 'B' | 'C' | ... | 'Z' .
+
+
+{ B. Grammar: ExecPP; Author: Chubak Bidpaa }
+
+execute-shell-inline ::= '`' ? any ascii sequence ? '`' .
+
+{ C. Grammar: HerePP; Author: Chubak Bidpaa }
+
+here-str	::= here-starts ? valid ascii sequence ? here-ident .
+
+here-starts     ::= ? any ascii sequence ? '=' "<<<" here-ident .
+
+here-ident 	::= "END_" ident "_STR" .
+
+ident 		::= letter { letter | digit | '_' } .
+
+digit 		::= '0' | '1' | ... | '9'
+letter 		::= 'A' | 'B' | 'C' | ... | 'z' .
