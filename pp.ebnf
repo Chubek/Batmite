@@ -13,20 +13,22 @@
 
 { A. Grammar: TreePP; Author: Chubak Bidpaa }
 
-tree-decl 	::= "%tree" [ tree-storage ] tree-name tree-value [ tree-left ] [ tree-right ] .
+tree-decl 	::= "%tree" [ tree-storage ] tree-name [ tree-parent] tree-value [ tree-left ] [ tree-right ] .
 
 tree-storage    ::= "%static" | "%heap" .
 
-tree-name 	::= "%name" tree-child .
+tree-name 	::= "%name" tree-ident .
 tree-value	::= "%value" tree-node .
-tree-right 	::= "%right" tree-child .
-tree-left	::= "%left" tree-child .
+tree-parent	::= "%parent" tree-ident .
+tree-right 	::= "%right" tree-ident .
+tree-left	::= "%left" tree-ident .
 
-tree-child	::= lowercasse { lowercase } .
-tree-node	::= uppercase { uppercase } .
+tree-ident	::= identifier .
+tree-node	::= number | string | identifier .
 
-lowercase 	::= 'a' | 'b' | 'c' | ... | 'z' .
-uppercase  	::= 'A' | 'B' | 'C' | ... | 'Z' .
+number		::= ? any valid C numeric value ? .
+string		::= ? any valid C string sequence ? .
+identifier	::= ? any valid C identifier ? .
 
 
 { B. Grammar: ExecPP; Author: Chubak Bidpaa }
