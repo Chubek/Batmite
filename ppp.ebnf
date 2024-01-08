@@ -109,11 +109,14 @@ digit 		::= '0' | '1' | ... | '8' | '9'
 
 { F. Grammar: AsmPP; Author: Chubak Bidpaa }
 
-condition	 ::= 
-		  case-op { ( case-reg | case-memory | case-const) } '{' ? { any-character } ? ')'
+pattern-match	 ::= "emission" "ID=" integer-literal '=' condition-list ';'
+
+condition-list	 ::= condition { '|' condition }
+
+condition	 ::= case-op { ( case-reg | case-memory | case-const ) } '{' any-text '}'
 
 case-op		 ::= "op?" opcode-name
-case-reg	 	 ::= "reg?" register-name 
+case-reg	 ::= "reg?" register-name 
 case-memory	 ::= "mem?"
 case-const	 ::= "const?"
 
@@ -125,7 +128,7 @@ opcode-name	::= letter { letter | digit | '_' }
 
 register-name   ::= letter { letter | digit }
 
-comment 	::= ';' any-text newline
+comment 	::= ';'  any-text  newline
 
 label 		::= letter { letter | digit | '_' }
 
