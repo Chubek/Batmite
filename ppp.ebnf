@@ -10,9 +10,6 @@
 
 	- `allocpp.pl`: Generates heap allocations for a function or globally
 
-	- `asmpp.pl`: Generates a binarizer in C based on the given Assembly language grammar
-
-
 	The grammar for all these preprocessors in given below
 
 }}
@@ -106,47 +103,4 @@ integer-literal ::= digit { digit }
 letter 		::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
 
 digit 		::= '0' | '1' | ... | '8' | '9'
-
-{ F. Grammar: AsmPP; Author: Chubak Bidpaa }
-
-pattern-match	 ::= "emission" "ID=" integer-literal '=' condition-list ';'
-
-condition-list	 ::= condition { '|' condition }
-
-condition	 ::= case-op { ( case-reg | case-memory | case-const ) } '{' any-text '}'
-
-case-op		 ::= "op?" opcode-name
-case-reg	 ::= "reg?" register-name 
-case-memory	 ::= "mem?"
-case-const	 ::= "const?"
-
-machine-opcode   ::= "%mopc" { opcode-name '=' integer-literal }
-
-machine-register ::= "%mreg" { register-name '=' integer-literal }
-
-opcode-name	::= letter { letter | digit | '_' }
-
-register-name   ::= letter { letter | digit }
-
-comment 	::= ';'  any-text  newline
-
-label 		::= letter { letter | digit | '_' }
-
-opcode 		::= letter { letter }
-
-integer-literal ::= digit { digit }
-		 | { ( digit | hex-digit ) } 'H'
-		 | { oct-digit } 'O'
-
-newline 	::= '\n'
-
-letter 		::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
-
-oct-digit	::= '0' | '1' | ... | '7' 
-
-hex-digit	::= 'A' | 'B' | ... | 'F' | 'a' | 'b' | ... | 'f'
-
-digit 		::= '0' | '1' | ... | '8' | '9'
-
-any-text 	::= ? any-valid-text ?
 
