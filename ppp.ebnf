@@ -6,6 +6,8 @@
 
 	- `herepp.pl`: Preprocesses here-strings into legal C strings.
 
+	- `opcodepp.pl`: A language used to describe opcodes, this script transforms it into several target forms.
+
 
 	The grammar for all these preprocessors in given below.
 
@@ -47,3 +49,23 @@ ident 		::= letter { letter | digit | '_' } .
 
 digit 		::= '0' | '1' | ... | '9'
 letter 		::= 'A' | 'B' | 'C' | ... | 'z' .
+
+
+{ D. Grammar: OpcodePP; Author: Chubak Bidpaa }
+
+opcode-decl	::= "%opcode" [ '[' text ']' ] ':' name arity class [ internal ] .
+
+internal	::= "%internal" .
+class		::= "%class" word { '|' word } .
+arity		::= "%arity" operand-type { ',' operand-type } .
+name		::= "%name" opcode-name .
+
+operand-type	::= "const" | "register" | "memory" | "none" .
+
+word		::= { nonspacechar } .
+text		::= { character } .
+opcode-name	::= { uppsercase } .
+
+uppercase 	::= 'A' | 'B" | 'C' | ... | 'Z' .
+nonspacechar	::= ? any-valid-ASCI-letter-except-space ? .
+character	::= ? any-valid-ASCII-letter ? .
