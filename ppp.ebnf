@@ -12,6 +12,10 @@
 
 	- `asmspec.pl`: Generates a simple binarizer code in C based on the specs
 
+	- `irspec.pl`: For use with various IR opcode-related operations
+
+	- `terspec.pl`: Tree Expression Rewrite spec, for use with the BURS algorithm generator
+
 	The grammar for all these preprocessors in given below
 
 }}
@@ -173,4 +177,36 @@ no-newline      ::= ? any-character-except-newline ?
 letter          ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
 
 digit           ::= '0' | '1' | ... | '8' | '9'
+
+{ K. Grammar: Tree Expression Rewrite Specifier; Author: Chubak Bidpaa }
+
+tree-specifier     ::= { rule | comment }
+
+rule               ::= pattern "=>" result-list newline ";;" newline
+
+pattern            ::= tree-node { "|" tree-node }
+
+tree-node          ::= identifier | nested-tree
+
+nested-tree        ::= identifier "(" pattern ")"
+
+result-list	   ::= result { ',' result }
+
+result             ::= tree-node cost
+
+cost		   ::= '(' number ')'
+
+comment            ::= "--" { no-newline } newline
+
+identifier         ::= letter { letter | digit | '_' }
+
+number             ::= digit { digit }
+
+no-newline         ::= ? any-character-except-newline ?
+
+newline            ::= '\n'
+
+letter             ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
+
+digit              ::= '0' | '1' | ... | '8' | '9'
 
