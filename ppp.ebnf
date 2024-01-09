@@ -150,7 +150,9 @@ specs           ::= { instruction | comment }
 
 instruction     ::= ir-opcode { ';' ir-opcode }
 
-ir-opcode       ::= opcode group type
+ir-opcode       ::= opcode group type-list
+
+type-list	::= type { ',' type }
 
 comment         ::= "--" { no-newline } '\n'
 
