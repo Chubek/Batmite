@@ -104,3 +104,40 @@ letter 		::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
 
 digit 		::= '0' | '1' | ... | '8' | '9'
 
+{ F. Grammar: Assembler Specifier; Author: Chubak Bidpaa }
+
+asmbler-specs      ::= rule { ';' rule } | comment
+
+rule               ::= condition "=>" action newline
+
+action		   ::= "{{" any-text "}}"
+
+condition          ::= "%asm-cond" opcode operand-list
+
+opcode             ::= identifier
+
+operand-list	   ::= operand { ',' operand }
+
+operand            ::= register | immediate
+
+immediate          ::= "%imm" [ '(' number ')' ]
+
+register	   ::= "%reg" [ '(' identifier ')' ]
+
+comment            ::= "--" { no-newline } newline
+
+newline            ::= '\n'
+
+number		   ::= { digit }
+
+identifier         ::= letter { letter | digit | '_' }
+
+digit              ::= '0' | '1' | ... | '8' | '9' | 'A' | 'B' | ... 'F'
+
+letter             ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
+
+any-text	   ::= { any-character }
+
+character	   ::= ? any-character ?
+
+no-newline	   ::= ? any-character-except-newline ?
