@@ -182,29 +182,27 @@ digit           ::= '0' | '1' | ... | '8' | '9'
 
 tree-specifier     ::= operand-decl { rule | comment }
 
-rule               ::= pattern "=>" alt-tree-list newline ";;" newline
+rule               ::= lhs "=>" rhs newline ";;" newline
 
 operand-decl	   ::= "%operand" operand-list newline
 
-operand-list	   ::= operand { ',' operand }
+operand-list	   ::= { operand }
 
-pattern            ::= tree-node { '|' tree-node }
+rhs		   ::= alt-tree { '|' alt-tree }
 
-tree-node          ::= identifier | nested-tree | operand
+lhs		   ::= tree
 
-nested-tree        ::= identifier '(' tree-node ')'
+alt-tree	   ::= tree cost
 
-alt-tree-list	   ::= result { ',' result }
+tree		   ::= stub | operand | '(' tree ')' | '(' tree ',' tree ')'
 
-alt-tree           ::= tree-node cost
+operand		   ::= { lower }
 
-operand		   ::= identifier
+stub		   ::= { upper }
 
 cost		   ::= '(' number ')'
 
 comment            ::= "--" { no-newline } newline
-
-identifier         ::= letter { letter | digit | '_' }
 
 number             ::= digit { digit }
 
@@ -212,7 +210,9 @@ no-newline         ::= ? any-character-except-newline ?
 
 newline            ::= '\n'
 
-letter             ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
+lower		   ::= 'a' | 'b' | ... | 'z'
+
+upper		   ::= 'A' | 'B' | ... | 'Z'
 
 digit              ::= '0' | '1' | ... | '8' | '9'
 
