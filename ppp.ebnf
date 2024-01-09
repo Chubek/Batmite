@@ -150,7 +150,7 @@ specs           ::= { instruction | comment }
 
 instruction     ::= ir-opcode { ';' ir-opcode }
 
-ir-opcode       ::= opcode group type-list
+ir-opcode       ::= opcode group "||" type-list
 
 type-list	::= type { ',' type }
 
@@ -160,7 +160,7 @@ group           ::= identifier
 
 type            ::= "%i8" | "%i16" | "%i32" | "%i64"
                     | "%u8" | "%u16" | "%u32" | "%u64"
-                    | "%f32" | "%f64" | "%string" | "%memloc"
+                    | "%f32" | "%f64" | "%string" | "%memloc" | "%none"
 
 opcode          ::= identifier
 
