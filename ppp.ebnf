@@ -10,6 +10,8 @@
 
 	- `allocpp.pl`: Generates heap allocations for a function or globally
 
+	- `asmspec.pl`: Generates a simple binarizer code in C based on the specs
+
 	The grammar for all these preprocessors in given below
 
 }}
@@ -120,7 +122,7 @@ operand-list	   ::= operand { ',' operand }
 
 operand            ::= register | immediate
 
-immediate          ::= "%imm" [ '(' number ')' ]
+immediate          ::= "%imm" [ '(' ( number | identifier ) ')' ]
 
 register	   ::= "%reg" [ '(' identifier ')' ]
 
@@ -141,3 +143,32 @@ any-text	   ::= { any-character }
 character	   ::= ? any-character ?
 
 no-newline	   ::= ? any-character-except-newline ?
+
+{ G. Grammar: Intermediate Language Opcode Specifier; Author: Chubak Bidpaa }
+
+specs           ::= { instruction | comment }
+
+instruction     ::= ir-opcode { ';' ir-opcode }
+
+ir-opcode       ::= opcode group type
+
+comment         ::= "--" { no-newline } '\n'
+
+group           ::= identifier
+
+type            ::= "%i8" | "%i16" | "%i32" | "%i64"
+                    | "%u8" | "%u16" | "%u32" | "%u64"
+                    | "%f32" | "%f64" | "%string" | "%memloc"
+
+opcode          ::= identifier
+
+identifier      ::= letter { letter | digit | '_' }
+
+number          ::= digit { digit }
+
+no-newline      ::= ? any-character-except-newline ?
+
+letter          ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
+
+digit           ::= '0' | '1' | ... | '8' | '9'
+
