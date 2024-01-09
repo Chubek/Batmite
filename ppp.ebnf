@@ -180,19 +180,25 @@ digit           ::= '0' | '1' | ... | '8' | '9'
 
 { K. Grammar: Tree Expression Rewrite Specifier; Author: Chubak Bidpaa }
 
-tree-specifier     ::= { rule | comment }
+tree-specifier     ::= operand-decl { rule | comment }
 
-rule               ::= pattern "=>" result-list newline ";;" newline
+rule               ::= pattern "=>" alt-tree-list newline ";;" newline
 
-pattern            ::= tree-node { "|" tree-node }
+operand-decl	   ::= "%operand" operand-list newline
 
-tree-node          ::= identifier | nested-tree
+operand-list	   ::= operand { ',' operand }
 
-nested-tree        ::= identifier "(" pattern ")"
+pattern            ::= tree-node { '|' tree-node }
 
-result-list	   ::= result { ',' result }
+tree-node          ::= identifier | nested-tree | operand
 
-result             ::= tree-node cost
+nested-tree        ::= identifier '(' tree-node ')'
+
+alt-tree-list	   ::= result { ',' result }
+
+alt-tree           ::= tree-node cost
+
+operand		   ::= identifier
 
 cost		   ::= '(' number ')'
 
