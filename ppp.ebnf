@@ -1,4 +1,5 @@
-# A. Grammar: TreePP; Author: Chubak Bidpaa
+# A. Grammar: Tree Preprocessor; Author: Chubak Bidpaa
+## This grammar is used to specify inline trees in C code
 
 tree-decl 	::= "%tree" [ tree-storage ] tree-name [ tree-parent] tree-value [ tree-left ] [ tree-right ] 
 
@@ -18,7 +19,9 @@ string		::= ? any valid C string sequence ?
 identifier	::= ? any valid C identifier ? 
 
 
-# B. Grammar: ExecPP; Author: Chubak Bidpaa
+# B. Grammar: Exec Substitution Preprocessor; Author: Chubak Bidpaa
+## This grammar is used to execute commands inline
+
 
 execute-shell-inline ::= '`' ? any ascii sequence ? '`' 
 
@@ -36,7 +39,8 @@ digit 		::= '0' | '1' | ... | '9'
 letter 		::= 'A' | 'B' | 'C' | ... | 'z' 
 
 
-# D. Grammar: OpcodePP; Author: Chubak Bidpaa
+# D. Grammar: Opcode Specifier; Author: Chubak Bidpaa
+## This gramamr is used to specify opcodes
 
 opcode-pp	::= opcode-list [ { comment } ]
 
@@ -64,7 +68,8 @@ text		::= { any-char }
 
 any-char	::= ? any-valid-ASCII-char ?
 
-# E. Grammar: AllocPP; Author: Chubak Bidpaa
+# E. Grammar: Alloc Preprocessor; Author: Chubak Bidpaa
+## This grammar is used to deal with automatic heap allcation in C
 
 preprocessor-directive ::= 
 	  '#alloc' [ lexical-scope ] identifier alloc-arguments newline 
@@ -89,6 +94,7 @@ letter 		::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
 digit 		::= '0' | '1' | ... | '8' | '9'
 
 # F. Grammar: Assembler Specifier; Author: Chubak Bidpaa
+## This grammar is used to specify binarizers (assemblers) for a set of machine opcodes
 
 asmbler-specs      ::= rule { ';' rule } | comment
 
@@ -127,6 +133,7 @@ character	   ::= ? any-character ?
 no-newline	   ::= ? any-character-except-newline ?
 
 # G. Grammar: Intermediate Language Opcode Specifier; Author: Chubak Bidpaa
+## This grammar is used to specify intermediate representation opcodes
 
 specs           ::= { instruction | comment }
 
@@ -157,6 +164,8 @@ letter          ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
 digit           ::= '0' | '1' | ... | '8' | '9'
 
 # H. Grammar: Tree Expression Rewrite Specifier; Author: Chubak Bidpaa
+## This grammar is used to specify tree rewrite cases for use with BURS algorithm
+
 
 main-text	   ::= single-spec { single-spec }
 
@@ -202,7 +211,7 @@ digit              ::= '0' | '1' | ... | '8' | '9'
 
 
 # I. Grammar: Constant Folding Specifier; Author: Chubak Bidpaa
-
+## This grammar is used to specify constant folding cases
 
 folding-specs	   ::= operation { newline | operation | comment }
 
@@ -246,3 +255,13 @@ no-newline	   ::= ? any-ASCII-character-except-newline ?
 any-text	   ::= any-character { any-character }
 
 any-character 	   ::= ? any-valid-ASCII-char ?
+
+
+# J. Grammar: Computation Reduction Specifier; Author: Chubak Bidpaa
+## This grammar is used to specify cases of computation reduction in the IR, for example, variable induction in loops
+
+
+
+
+
+
