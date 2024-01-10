@@ -29,7 +29,7 @@ sub process_line {
 sub parse_line {
     my ($line) = @_;
 
-    if ($line =~ /^%tree\s*(?:%(\w+)\s*)?%name\s+(\w+)\s*(?:%parent\s+(\w+)\s*)?%value\s+([^\s%]+)\s*(?:%left\s+(\w+)\s*)?(?:%right\s+(\w+)\s*)?$/) {
+    if ($line =~ /^\s*%tree\s*(?:%(\w+)\s*)?%name\s+(\w+)\s*(?:%parent\s+(\w+)\s*)?%value\s+([^\s%]+)\s*(?:%left\s+(\w+)\s*)?(?:%right\s+(\w+)\s*)?$/) {
         return ($2, $1, $3, $4, $5, $6);
     }
 
