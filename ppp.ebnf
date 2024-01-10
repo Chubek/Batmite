@@ -253,29 +253,11 @@ literal		   ::= character
 		    | whole-number
 		    | hex-number
 
-character	   ::= "'" ( any-character | c-escapes ) "'"
-
-string		   ::= '"' string-contents '"'
-
-string-contents	   ::= no-quote-newline { no-quote-newline }
-
-rational-number    ::= whole-number '.' whole-number
-
-whole-number	   ::= digit { digit }
-
-hex-number	   ::= hex-digit { hex-digit } 'H'
-
 identifier 	   ::= letter { letter | digit | '_' }
-
-hex-digit	   ::= digit | 'A' | 'B' | ... | 'F' | 'a' | 'b' | ... | 'f'
-
-digit  		   ::= '0' | '1' | '2' | ... | '9'
 
 letter             ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
 
 any-text 	   ::= { any-character }
-
-c-escapes	   ::= ? c-escaped-character ?
 
 comment		   ::= "-- " no-newline { no-newline } newline
 
