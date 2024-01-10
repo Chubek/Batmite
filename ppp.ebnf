@@ -310,4 +310,79 @@ text                 ::= any-char { any-char }
 
 any-char             ::= ? any-ASCII-character ?
 
+# K. Grammar: Intermediate ML-like-to-C SDT Grammar; Author Chubak Bidpaa
+## This grammar is a subset of ML, some DSLs are translated to this language --- and this language in turn is translated down to C
+
+program            ::= { declaration }
+
+declaration        ::= function-declaration | variable-declaration
+
+function-declaration ::= "fun" identifier "(" [ parameter-list ] ")" ":" type "=" expression
+
+variable-declaration ::= "val" identifier ":" type "=" expression
+
+parameter-list     ::= identifier { "," identifier }
+
+type               ::= "int" 
+                   | "float" 
+                   | "bool" 
+                   | "char" 
+                   | "string" 
+                   | user-defined-type
+
+user-defined-type  ::= identifier
+
+expression         ::= literal
+                   | identifier
+                   | "(" expression ")"
+                   | expression binary-operator expression
+                   | unary-operator expression
+                   | if expression then expression else expression
+                   | match expression with pattern-matches
+
+literal            ::= integer-literal 
+                   | float-literal 
+                   | bool-literal 
+                   | char-literal 
+                   | string-literal
+
+integer-literal    ::= digit { digit }
+
+float-literal      ::= digit { digit } "." digit { digit }
+
+bool-literal       ::= "true" | "false"
+
+char-literal       ::= "'" any-char "'"
+
+string-literal     ::= "\"" { any-char } "\""
+
+binary-operator    ::= "+" | "-" | "*" | "/" | "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||"
+
+unary-operator     ::= "-" | "!" | "++" | "--"
+
+argument-list      ::= expression { "," expression }
+
+identifier         ::= letter { letter | digit | "_" }
+
+letter             ::= lowercase | uppercase
+
+lowercase         ::= "a" | "b" | ... | "z"
+
+uppercase         ::= "A" | "B" | ... | "Z"
+
+any-char          ::= ? any-valid-ASCII-char ?
+
+digit             ::= "0" | "1" | ... | "8" | "9"
+
+match             ::= "match" expression "with" pattern-matches
+
+pattern-matches   ::= pattern-match { "|" pattern-match }
+
+pattern-match     ::= pattern "->" expression
+
+pattern           ::= literal-pattern | identifier-pattern
+
+literal-pattern   ::= integer-literal | float-literal | bool-literal | char-literal | string-literal
+
+identifier-pattern ::= identifier
 
