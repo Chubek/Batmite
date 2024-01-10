@@ -27,17 +27,25 @@ execute-shell-inline ::= '`' ? any ascii sequence ? '`'
 
 # C. Grammar: HerePP; Author: Chubak Bidpaa
 
-here-str	::= here-starts ? valid ascii sequence ? here-ident 
+pp-text		::= { here-str | text }
 
-here-starts     ::= ? any ascii sequence ? '=' "<<<" here-ident 
+here-str 	::= here-str-init text newline identifier ";;"
 
-here-ident 	::= "END_" ident "_STR" 
+here-str-init   ::= start-of-line { white-space } text "=<<<" identifier
 
-ident 		::= letter { letter | digit | '_' } 
+identifier 	::= letter { letter | digit | '_' }
 
-digit 		::= '0' | '1' | ... | '9'
-letter 		::= 'A' | 'B' | 'C' | ... | 'z' 
+digit 	   	::= '0' | '1' | ... | '9'
+letter    	::= 'A' | 'B' | ... | 'z' 
 
+text		::= any-char { any-char }
+
+newline	 	::= '\n'
+white-space 	::= ' ' | '\t'
+
+start-of-line   ::= ? start-of-a-line ?
+
+any-char 	::= ? any-valid-ASCII-character ?
 
 # D. Grammar: Opcode Specifier; Author: Chubak Bidpaa
 ## This gramamr is used to specify opcodes

@@ -25,16 +25,14 @@ ExecuteShellInline <- '`' .* '`'
 
 # C. Grammar: HerePP; Author: Chubak Bidpaa
 
-HereStr        <- HereStarts .+ HereIdent 
+PPText		<- ( HereStr / Text )+
 
-HereStarts     <- .+ '=' "<<<" HereIdent 
+HereStr		<- HereStrInit Text+ [\r\n]+ Identifier ";;"
 
-HereIdent      <- "END_" Ident "_STR" 
+HereStrInit 	<- [ \t]* Text "=<<<" Identifier
 
-Ident          <- [a-zA-Z_][a-zA-Z0-9]*
-
-Digit          <- [0-9]+
-
+Identifier  	<- [A-Za-z_][A-Za-z0-9_]*
+Text		<- .*
 
 # D. Grammar: Opcode Specifier; Author: Chubak Bidpaa
 ## This gramamr is used to specify opcodes
