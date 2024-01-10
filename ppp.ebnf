@@ -313,9 +313,14 @@ any-char             ::= ? any-ASCII-character ?
 # K. Grammar: Intermediate ML-like-to-C SDT Grammar; Author Chubak Bidpaa
 ## This grammar is a subset of ML, some DSLs are translated to this language --- and this language in turn is translated down to C
 
+## Note: In ML, everything is an expression, and we don't have statements
+
 program            ::= { declaration }
 
-declaration        ::= function-declaration | variable-declaration
+declaration        ::= function-declaration 
+		    | variable-declaration 
+		    | define-type
+		    | define-record
 
 function-declaration ::= "fun" identifier '(' [ parameter-list ] ')' ':' type '=' expression
 
@@ -323,12 +328,32 @@ variable-declaration ::= "val" identifier ':' type '=' expression
 
 parameter-list     ::= identifier { ',' identifier }
 
+
+define-record 	   ::= "record" identifier '=' record
+
+record		   ::= '{' record-pair-list '}'
+
+record-pair-list   ::= record-pair { ';' record-pair }
+
+record-pair	   ::= identifier ':' type
+
+record-inst-pair   ::= identifier '=' ( identifier-pattern | literal-pattern )
+
+define-type   	   ::= "type" user-defined-type '=' type-variant-list
+
+type-variant-list  ::= type-variant { '|' type-variant }
+
+type-variant	   ::= identifier [ "of" type-list ]
+
+type-list	   ::= type { '*' type }
+
 type               ::= "int" 
                    | "float" 
                    | "bool" 
                    | "char" 
                    | "string" 
                    | user-defined-type
+
 
 user-defined-type  ::= identifier
 
@@ -339,12 +364,20 @@ if-expression	   ::= "if" expression "then" expressio "else" expression "fi"
 expression         ::= literal
                    | identifier
                    | '(' expression ')'
-                   | expression binary-operator expression
+		   | identifier '(' ( identifier-pattern | literal-pattern ) ')'
+                   | record-inst-pair
+		   | expression binary-operator expression
                    | unary-operator expression
                    | match expression with pattern-matches
 		   | if-expression
 		   | for-expression
+		   | local-expression
+		   | assignment-expression
 		
+
+local-expression   ::= "local" { expression } "in" { expression } "end"
+
+assignment-expression ::= "let" identifier '=' expression "in"
 
 literal            ::= integer-literal 
                    | float-literal 
@@ -390,5 +423,5 @@ pattern           ::= literal-pattern | identifier-pattern
 
 literal-pattern   ::= integer-literal | float-literal | bool-literal | char-literal | string-literal
 
-identifier-pattern ::= identifier
+identifier-pattern ::= identifier [ '(' literal-pattern ')' ]
 
