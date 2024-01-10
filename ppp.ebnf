@@ -1,4 +1,4 @@
-{{
+===
 	This project contains several preprocessors in Perl
 
 	- `treepp.pl`: Transforms tree grammars into instantiation of trees based on given macros/functions
@@ -16,11 +16,13 @@
 
 	- `terspec.pl`: Tree Expression Rewrite spec, for use with the BURS algorithm generator
 
+	- `constfld.pl`: Specifier for constant folding conditions based on given IR
+
 	The grammar for all these preprocessors in given below
 
-}}
+===
 
-{ A. Grammar: TreePP; Author: Chubak Bidpaa }
+# A. Grammar: TreePP; Author: Chubak Bidpaa
 
 tree-decl 	::= "%tree" [ tree-storage ] tree-name [ tree-parent] tree-value [ tree-left ] [ tree-right ] 
 
@@ -40,11 +42,11 @@ string		::= ? any valid C string sequence ?
 identifier	::= ? any valid C identifier ? 
 
 
-{ B. Grammar: ExecPP; Author: Chubak Bidpaa }
+# B. Grammar: ExecPP; Author: Chubak Bidpaa
 
 execute-shell-inline ::= '`' ? any ascii sequence ? '`' 
 
-{ C. Grammar: HerePP; Author: Chubak Bidpaa }
+# C. Grammar: HerePP; Author: Chubak Bidpaa
 
 here-str	::= here-starts ? valid ascii sequence ? here-ident 
 
@@ -58,13 +60,13 @@ digit 		::= '0' | '1' | ... | '9'
 letter 		::= 'A' | 'B' | 'C' | ... | 'z' 
 
 
-{ D. Grammar: OpcodePP; Author: Chubak Bidpaa }
+# D. Grammar: OpcodePP; Author: Chubak Bidpaa
 
 opcode-pp	::= opcode-list [ { comment } ]
 
 opcode-list 	::= opcode-decl { ';' opcode-decl }
 
-comment		::= "--" text
+comment		::= "#" text
 
 opcode-decl	::= '%' opcode-name "of" operand-name
 
@@ -86,7 +88,7 @@ text		::= { any-char }
 
 any-char	::= ? any-valid-ASCII-char ?
 
-{ E. Grammar: AllocPP; Author: Chubak Bidpaa }
+# E. Grammar: AllocPP; Author: Chubak Bidpaa
 
 preprocessor-directive ::= 
 	  '#alloc' [ lexical-scope ] identifier alloc-arguments newline 
@@ -110,7 +112,7 @@ letter 		::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
 
 digit 		::= '0' | '1' | ... | '8' | '9'
 
-{ F. Grammar: Assembler Specifier; Author: Chubak Bidpaa }
+# F. Grammar: Assembler Specifier; Author: Chubak Bidpaa
 
 asmbler-specs      ::= rule { ';' rule } | comment
 
@@ -130,7 +132,7 @@ immediate          ::= "%imm" [ '(' ( number | identifier ) ')' ]
 
 register	   ::= "%reg" [ '(' identifier ')' ]
 
-comment            ::= "--" { no-newline } newline
+comment            ::= "#" { no-newline } newline
 
 newline            ::= '\n'
 
@@ -148,7 +150,7 @@ character	   ::= ? any-character ?
 
 no-newline	   ::= ? any-character-except-newline ?
 
-{ G. Grammar: Intermediate Language Opcode Specifier; Author: Chubak Bidpaa }
+# G. Grammar: Intermediate Language Opcode Specifier; Author: Chubak Bidpaa
 
 specs           ::= { instruction | comment }
 
@@ -158,7 +160,7 @@ ir-opcode       ::= opcode group "||" type-list
 
 type-list	::= type { ',' type }
 
-comment         ::= "--" { no-newline } '\n'
+comment         ::= "#" { no-newline } '\n'
 
 group           ::= identifier
 
@@ -178,7 +180,7 @@ letter          ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
 
 digit           ::= '0' | '1' | ... | '8' | '9'
 
-{ K. Grammar: Tree Expression Rewrite Specifier; Author: Chubak Bidpaa }
+# H. Grammar: Tree Expression Rewrite Specifier; Author: Chubak Bidpaa
 
 main-text	   ::= single-spec { single-spec }
 
@@ -206,7 +208,7 @@ node		   ::= upper { upper | '_' }
 
 cost		   ::= '(' number ')'
 
-comment            ::= "--" comment-text newline
+comment            ::= "#" comment-text newline
 
 number             ::= digit { digit }
 
@@ -222,3 +224,67 @@ upper		   ::= 'A' | 'B' | ... | 'Z'
 
 digit              ::= '0' | '1' | ... | '8' | '9'
 
+
+# I. Grammar: Constant Folding Specifier; Author: Chubak Bidpaa
+
+
+folding-specs	   ::= operation { newline | operation | comment }
+
+operation	   ::= operation-arity opcode operation-name "=>" folding-action
+folding-action	   ::= "{{" any-text "}}"
+
+operation-name	   ::= "&addition" | "&subtraction" | "&multiplication" | "&division"
+		    | "&modulo" | "&assign" | "&logical_and" | "&logical_or"
+		    | "&bitwise_and" | "&bitwise_or" | "&bitwise_xor" | "&left_shift"
+		    | "&right_shift" | "&equal_to" | "&not_equal_to" | "&greater_than"
+		    | "&less_than" | "&greater_than_or_equal_to" 
+		    | "&less_than_or_equal_to" | "&unary_plus" | "&unary_minus" 
+		    | "&logical_not" | "&bitwise_not"| "&pre_increment" 
+		    | "&pre_decrement" | "&address_of" | "&dereference"
+
+
+operation-arity	   ::= "%unary" | "%binary"
+
+opcode		   ::= identifier
+
+literal		   ::= character
+		    | string
+		    | rational-number
+		    | whole-number
+		    | hex-number
+
+character	   ::= "'" ( any-character | c-escapes ) "'"
+
+string		   ::= '"' string-contents '"'
+
+string-contents	   ::= no-quote-newline { no-quote-newline }
+
+rational-number    ::= whole-number '.' whole-number
+
+whole-number	   ::= digit { digit }
+
+hex-number	   ::= hex-digit { hex-digit } 'H'
+
+identifier 	   ::= letter { letter | digit | '_' }
+
+hex-digit	   ::= digit | 'A' | 'B' | ... | 'F' | 'a' | 'b' | ... | 'f'
+
+digit  		   ::= '0' | '1' | '2' | ... | '9'
+
+letter             ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... | 'Z'
+
+any-text 	   ::= { any-character }
+
+c-escapes	   ::= ? c-escaped-character ?
+
+comment		   ::= "-- " no-newline { no-newline } newline
+
+newline		   ::= '\n'
+
+no-quote-newline   ::= ? any-ASCII-character-except-double-quote-or-newline ?
+
+no-newline	   ::= ? any-ASCII-character-except-newline ?
+
+any-text	   ::= any-character { any-character }
+
+any-character 	   ::= ? any-valid-ASCII-char ?
