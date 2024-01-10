@@ -380,10 +380,19 @@ local-expression   ::= "local" { expression } "in" { expression } "end"
 assignment-expression ::= "let" identifier '=' expression "in"
 
 literal            ::= integer-literal 
+ 		   | hex-integer-literal
+		   | bin-integer-literal
+		   | oct-integer-literal
                    | float-literal 
                    | bool-literal 
                    | char-literal 
                    | string-literal
+
+oct-integer-literal   ::= oct-digit { oct-digit } 'O'
+
+bin-integer-literal ::= bin-digit { bin-digit } 'B'
+
+hex-integer-literal ::= hex-digit { hex-digit } 'H'
 
 integer-literal    ::= digit { digit }
 
@@ -411,6 +420,12 @@ uppercase         ::= 'A' | 'B' | ... | 'Z'
 
 any-char          ::= ? any-valid-ASCII-char ?
 
+bin-digit	  ::= '0' | '1' 
+
+oct-digit	  ::= '0' | '1' | ... | '7'
+
+hex-digit	  ::= digit | 'A' | 'B' | ... | 'F' | 'a' | 'b' | ... | 'f'
+
 digit             ::= '0' | '1' | ... | '8' | '9'
 
 match             ::= "match" expression "with" pattern-matches
@@ -425,3 +440,19 @@ literal-pattern   ::= integer-literal | float-literal | bool-literal | char-lite
 
 identifier-pattern ::= identifier [ '(' literal-pattern ')' ]
 
+
+# L. Grammar: Type & Sigil Specifier DSL; Author: Chubak Bidpaa
+## The following DSL specifies a set of types and sigils for the intermediate representation, with the ability to specify how aggregate types may be specified in the grammar and what their reproduction should be
+
+
+
+
+
+
+
+
+
+
+
+no-newline	::= ? any-ascii-character-except-newline ?
+any-char	::= ? any-ascii-character ?
