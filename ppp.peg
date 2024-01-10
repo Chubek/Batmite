@@ -1,12 +1,7 @@
-{{ 
-	these are some of the DSL grammars expressed in PEG 
-	syntax to be fed to ChatGPT alongside the EBNF grammar. 
-	These are not official grammars, the EBNF grammars
-	should still be considered the official specifications
-}}
+# The following PEG grammars are provided as an alternative to the EBNF grammrs.
 
 
-{ PEG::G. Tree Rewrite Specifier; Author: Chubak Bidpaa }}
+## PEG::H Grammar: Tree Rewrite Specifier; Author: Chubak Bidpaa
 
 MainText	<- ( Rule / Comment )+
 
@@ -35,3 +30,27 @@ Node		<- [A-Z]+
 
 Comment		<- "--" ( !"\n")+ "\n"
 
+
+## PEG::I Grammar: Constant Folding Specifier; Author: Chubak Bidpaa
+
+Specs		<- ( Operaton / Comment )+
+
+Operation	<- OperationArity Opcode OperationName
+
+OperationName   <- "&addition" / "&subtraction" / "&multiplication" / "&division"
+                    / "&modulo" / "&assign" / "&logical_and" / "&logical_or"
+                    / "&bitwise_and" / "&bitwise_or" / "&bitwise_xor" / "&left_shift"
+                    / "&right_shift" / "&equal_to" / "&not_equal_to" / "&greater_than"
+                    / "&less_than" / "&greater_than_or_equal_to" 
+                    / "&less_than_or_equal_to" / "&unary_plus" / "&unary_minus" 
+                    / "&logical_not" / "&bitwise_not"/ "&pre_increment" 
+                    / "&pre_decrement" / "&address_of" / "&dereference"
+
+OperationArity  <- "%unary" / "%binary"
+
+Opcode		<- Identifier
+
+Identifier	<- [A-Za-z_][A-Za-z0-9]*
+
+
+Comment 	<- "-- " ( !"\n")+ "\n"
