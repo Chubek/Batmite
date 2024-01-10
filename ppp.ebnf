@@ -180,31 +180,37 @@ digit           ::= '0' | '1' | ... | '8' | '9'
 
 { K. Grammar: Tree Expression Rewrite Specifier; Author: Chubak Bidpaa }
 
-tree-specifier     ::= operand-decl { rule | comment }
+main-text	   ::= single-spec { single-spec }
 
-rule               ::= lhs "=>" rhs newline ";;" newline
+single-spec	   ::= rule | comment
 
-operand-decl	   ::= "%operand" operand-list newline
+rule               ::= lhs "=>" rhs ( newline ";;" newline )
 
-operand-list	   ::= { operand }
-
-rhs		   ::= alt-tree { '|' alt-tree }
+rhs		   ::= alt-tree { "||" alt-tree }
 
 lhs		   ::= tree
 
 alt-tree	   ::= tree cost
 
-tree		   ::= stub | operand | '(' tree ')' | '(' tree ',' tree ')'
+tree               ::= node '(' tree-branches ')' | operand | stub
 
-operand		   ::= { lower }
+tree-branches      ::= tree-branch  [ ',' tree-branch ]
 
-stub		   ::= { upper }
+tree-branch        ::= operand | tree-inner
+
+operand		   ::= lower { lower | '_' }
+
+stub		   ::= node
+
+node		   ::= upper { upper | '_' }
 
 cost		   ::= '(' number ')'
 
-comment            ::= "--" { no-newline } newline
+comment            ::= "--" comment-text newline
 
 number             ::= digit { digit }
+
+comment-text	   ::= no-newline { no-newline }
 
 no-newline         ::= ? any-character-except-newline ?
 

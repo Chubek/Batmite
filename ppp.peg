@@ -17,11 +17,21 @@ AltTree		<- Tree Cost
 
 Lhs		<- Tree
 
-Tree		<- Operand / Stub / Stub '(' Tree ')'  / Stub '(' Tree ',' Tree ')'
+Tree		<- Operand
+		/ Stub
+		/ Node '(' TreeBranches ')'
+
+TreeBranches    <- TreeBranch ( ',' TreeBranch )?
+
+TreeBranch	<- Operand
+		/ TreeInner 
 
 Cost		<- '(' [0-9]+ ')'
 
+Stub		<- Node
+
 Operand		<- [a-z]+
-Stub		<- [A-Z]+
+Node		<- [A-Z]+
+
 Comment		<- "--" ( !"\n")+ "\n"
 
