@@ -1,56 +1,233 @@
-# The following PEG grammars are provided as an alternative to the EBNF grammrs.
+# A. Grammar: Tree Preprocessor; Author: Chubak Bidpaa
+## This grammar is used to specify inline trees in C code
+
+TreeDecl       <- "%tree" TreeStorage? TreeName TreeParent? TreeValue TreeLeft? TreeRight?
+
+TreeStorage    <- "%static" / "%heap" 
+
+TreeName       <- "%name" TreeIdent
+TreeValue      <- "%value" TreeNode
+TreeParent     <- "%parent" TreeIdent
+TreeRight      <- "%right" TreeIdent
+TreeLeft       <- "%left" TreeIdent
+
+TreeIdent      <- Identifier 
+TreeNode       <- Number / String / Identifier
+
+Number         <- [0-9]+
+String         <- '"' .* '"'
+Identifier     <- [a-zA-Z_][a-zA-Z_]*
+
+# B. Grammar: Exec Substitution Preprocessor; Author: Chubak Bidpaa
+## This grammar is used to execute commands inline
+
+ExecuteShellInline <- '`' .* '`' 
+
+# C. Grammar: HerePP; Author: Chubak Bidpaa
+
+HereStr        <- HereStarts .+ HereIdent 
+
+HereStarts     <- .+ '=' "<<<" HereIdent 
+
+HereIdent      <- "END_" Ident "_STR" 
+
+Ident          <- [a-zA-Z_][a-zA-Z0-9]*
+
+Digit          <- [0-9]+
 
 
-## PEG::H Grammar: Tree Rewrite Specifier; Author: Chubak Bidpaa
+# D. Grammar: Opcode Specifier; Author: Chubak Bidpaa
+## This gramamr is used to specify opcodes
 
-MainText	<- ( Rule / Comment )+
+OpcodePP       <- OpcodeList Comment?
 
-Rule		<- Lhs "=>" Rhs "\n;;\n"
+OpcodeList     <- OpcodeDecl ( ';' OpcodeDecl )*
 
-Rhs		<- AltTree ( "\n||\n" AltTree )
-AltTree		<- Tree Cost
+Comment        <- "#" Text
 
-Lhs		<- Tree
+OpcodeDecl     <- '%' OpcodeName "of" OperandName
 
-Tree		<- Operand
-		/ Stub
-		/ Node '(' TreeBranches ')'
+OperandList    <- OperandName ( '*' OperandName )
 
-TreeBranches    <- TreeBranch ( ',' TreeBranch )?
+OperandName    <- [a-z]+
 
-TreeBranch	<- Operand
-		/ TreeInner 
+OpcodeName     <- [A-Z]+
 
-Cost		<- '(' [0-9]+ ')'
+Identifier     <- [a-zA-Z_][a-zA-Z0-9_]*
 
-Stub		<- Node
+Text           <- .*
 
-Operand		<- [a-z]+
-Node		<- [A-Z]+
+# E. Grammar: Alloc Preprocessor; Author: Chubak Bidpaa
+## This grammar is used to deal with automatic heap allocation in C
 
-Comment		<- "--" ( !"\n")+ "\n"
+PreprocessorDirective <- 
+    '#alloc' LexicalScope? Identifier AllocArguments Newline 
+    / '#realloc' LexicalScope? Identifier ReallocArguments Newline
 
+ReallocArguments <- '(' "size="? Size ',' "step="? Size ')'
 
-## PEG::I Grammar: Constant Folding Specifier; Author: Chubak Bidpaa
+AllocArguments   <- '(' "size="? Size ')'
 
-Specs		<- ( Operaton / Comment )+
+LexicalScope     <- "%global" / "%function" Identifier
 
-Operation	<- OperationArity Opcode OperationName
+Size             <- .+
 
-OperationName   <- "&addition" / "&subtraction" / "&multiplication" / "&division"
-                    / "&modulo" / "&assign" / "&logical_and" / "&logical_or"
-                    / "&bitwise_and" / "&bitwise_or" / "&bitwise_xor" / "&left_shift"
-                    / "&right_shift" / "&equal_to" / "&not_equal_to" / "&greater_than"
-                    / "&less_than" / "&greater_than_or_equal_to" 
-                    / "&less_than_or_equal_to" / "&unary_plus" / "&unary_minus" 
-                    / "&logical_not" / "&bitwise_not"/ "&pre_increment" 
-                    / "&pre_decrement" / "&address_of" / "&dereference"
+Identifier       <- [a-zA-Z_][a-zA-Z0-9]*
+
+Newline          <- '\n'
+
+IntegerLiteral   <- [0-9]+
+
+# F. Grammar: Assembler Specifier; Author: Chubak Bidpaa
+## This grammar is used to specify binarizers (assemblers) for a set of machine opcodes
+
+AsmblerSpecs      <- Rule ( ';' Rule )* / Comment
+
+Rule               <- Condition "=>" Action Newline
+
+Action             <- "{{" .* "}}"
+
+Condition          <- "%asm-cond" Opcode OperandList
+
+Opcode             <- Identifier
+
+OperandList        <- Operand ( ',' Operand )*
+
+Operand            <- Register / Immediate
+
+Immediate          <- "%imm" ( '(' ( Number / Identifier ) ')' )?
+
+Register           <- "%reg" ( '(' Identifier ')' )?
+
+Comment            <- "#" NoNewline* Newline
+
+Newline            <- '\n'
+
+Number            <- [0-9]+
+
+Identifier        <- [a-zA-Z_][a-zA-Z0-9_]*
+
+AnyText           <- .+
+
+Character         <- .
+
+NoNewline         <- !"\n"
+
+# G. Grammar: Intermediate Language Opcode Specifier; Author: Chubak Bidpaa
+## This grammar is used to specify intermediate representation opcodes
+
+Specs           <- ( Instruction / Comment )+
+
+Instruction     <- IROpcode ( ';' IROpcode )*
+
+IROpcode       <- Opcode Group "||" TypeList
+
+TypeList        <- Type ( ',' Type )*
+
+Comment         <- "#" NoNewline+ '\n'
+
+Group           <- Identifier
+
+Type            <- "%i8" / "%i16" / "%i32" / "%i64"
+                    / "%u8" / "%u16" / "%u32" / "%u64"
+                    / "%f32" / "%f64" / "%string" / "%memloc" / "%none"
+
+Opcode          <- Identifier
+
+Identifier      <- [a-zA-Z_][a-zA-Z0-9_]*
+
+Number          <- [0-9]+
+
+NoNewline      <- !"\n"
+
+# H. Grammar: Tree Expression Rewrite Specifier; Author: Chubak Bidpaa
+## This grammar is used to specify tree rewrite cases for use with BURS algorithm
+
+MainText       <- ( Rule / Comment )+
+
+Rule           <- Lhs "=>" Rhs "\n;;\n"
+
+Rhs            <- AltTree ( "\n||\n" AltTree )*
+AltTree        <- Tree Cost
+
+Lhs            <- Tree
+
+Tree           <- Operand
+                / Stub
+                / Node '(' TreeBranches ')'
+
+TreeBranches   <- TreeBranch ( ',' TreeBranch )?
+
+TreeBranch     <- Operand
+                / TreeInner 
+
+Cost           <- '(' [0-9]+ ')'
+
+Stub           <- Node
+
+Operand        <- [a-z]+
+Node           <- [A-Z]+
+
+Comment        <- "--" ( !"\n")+ "\n"
+
+# I. Grammar: Constant Folding Specifier; Author: Chubak Bidpaa
+## This grammar is used to specify constant folding cases
+
+Specs          <- ( Operation / Comment )+
+
+Operation      <- OperationArity Opcode OperationName
+
+OperationName  <- "&addition" / "&subtraction" / "&multiplication" / "&division"
+                 / "&modulo" / "&assign" / "&logical_and" / "&logical_or"
+                 / "&bitwise_and" / "&bitwise_or" / "&bitwise_xor" / "&left_shift"
+                 / "&right_shift" / "&equal_to" / "&not_equal_to" / "&greater_than"
+                 / "&less_than" / "&greater_than_or_equal_to" 
+                 / "&less_than_or_equal_to" / "&unary_plus" / "&unary_minus" 
+                 / "&logical_not" / "&bitwise_not"/ "&pre_increment" 
+                 / "&pre_decrement" / "&address_of" / "&dereference"
 
 OperationArity  <- "%unary" / "%binary"
 
-Opcode		<- Identifier
+Opcode         <- Identifier
 
-Identifier	<- [A-Za-z_][A-Za-z0-9]*
+Identifier     <- [A-Za-z_][A-Za-z0-9]*
 
+Comment        <- "-- " ( !"\n")+ "\n"
 
-Comment 	<- "-- " ( !"\n")+ "\n"
+# J. Grammar: Computation Reduction Specifier; Author: Chubak Bidpaa
+## This grammar is used to specify cases of computation reduction in the IR, for example, variable induction in loops
+
+MainSpecs           <- ( ReductionRuleList / Comment )+
+
+ReductionRuleList  <- ReductionRule ( "\n" ReductionRule )*
+
+ReductionRule       <- Lhs "=>" Rhs
+
+Rhs                 <- "{{"  RhsContent+ "}}"
+
+RhsContent         <- Text / '$' Label
+
+Lhs                 <- SExpression / LabeledSExpression
+
+LabeledSExpression  <- Label "::" SExpression
+
+SExpression         <- Atom / List
+
+Label               <- '{' Number '}'
+
+Number              <- [0-9]+
+
+List                <- '(' AtomList ')'
+
+AtomList            <- Atom { Atom }
+
+Atom                <- [-a-zA-Z0-9/=!^<>#|&\\\"\'%]+
+
+Comment             <- "-- " CommentText Newline
+
+CommentText         <- ( !"\n" )+
+
+Newline             <- '\n'
+
+Text                <- .*
+
