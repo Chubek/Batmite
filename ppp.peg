@@ -1,0 +1,27 @@
+{{ 
+	these are some of the DSL grammars expressed in PEG 
+	syntax to be fed to ChatGPT alongside the EBNF grammar. 
+	These are not official grammars, the EBNF grammars
+	should still be considered the official specifications
+}}
+
+
+{ PEG::G. Tree Rewrite Specifier; Author: Chubak Bidpaa }}
+
+MainText	<- ( Rule / Comment )+
+
+Rule		<- Lhs "=>" Rhs "\n;;\n"
+
+Rhs		<- AltTree ( "\n||\n" AltTree )
+AltTree		<- Tree Cost
+
+Lhs		<- Tree
+
+Tree		<- Operand / Stub / Stub '(' Tree ')'  / Stub '(' Tree ',' Tree ')'
+
+Cost		<- '(' [0-9]+ ')'
+
+Operand		<- [a-z]+
+Stub		<- [A-Z]+
+Comment		<- "--" ( !"\n")+ "\n"
+
