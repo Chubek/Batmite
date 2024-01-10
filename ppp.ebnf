@@ -260,8 +260,54 @@ any-character 	   ::= ? any-valid-ASCII-char ?
 # J. Grammar: Computation Reduction Specifier; Author: Chubak Bidpaa
 ## This grammar is used to specify cases of computation reduction in the IR, for example, variable induction in loops
 
+main-specs		    ::= { reduction-rule-list | comment }
 
+reduction-rule-list	    ::= reduction-rule { "\n" reduction-rule }
 
+reduction-rule		    ::= lhs "=>" rhs
 
+rhs			    ::= "{{" { rhs-content } "}}"
+
+rhs-content		    ::= text | '$' label
+
+lhs			    ::= s-expression | labeled-s-expression
+
+labeled-s-expression	    ::= label "::" s-expression
+
+s-expression 		    ::= atom | list
+
+label 			    ::= '{' number '}'
+
+number			    ::= digit { digit }
+
+list 			    ::= '(' atom-list ')'
+
+atom-list		    ::= atom { atom }
+
+atom			    ::= legal-char { legal-char }
+
+legal-char		    ::= letter | digit | punct
+
+punct			    ::= '-' | '/' | '=' 
+			     | '!' | '^' | '>'
+			     | '#' | '|' | '&'
+			     | '*' | '\' | '<'
+			     | '"' | "'"
+
+digit			    ::= '0' | '1' | ... | '9'
+
+letter			    ::= 'A' | 'B' | ... | 'z' 
+
+comment			    ::= "-- " comment-text newline
+
+comment-text		    ::= no-newline { no-newline }
+
+newline			    ::= '\n'
+
+no-newline 		    ::= ? any-ASCII-character-except-newline ?
+
+text			    ::= any-char { any-char }
+
+any-char		    ::= ? any-ASCII-character ?
 
 
