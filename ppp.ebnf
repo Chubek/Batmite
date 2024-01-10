@@ -1,27 +1,3 @@
-===
-	This project contains several preprocessors in Perl
-
-	- `treepp.pl`: Transforms tree grammars into instantiation of trees based on given macros/functions
-	- `execpp.pl`: Excutes inline commands and emits output
-
-	- `herepp.pl`: Preprocesses here-strings into legal C strings
-
-	- `opcodepp.pl`: A language used to describe opcodes, this script transforms it into several target forms
-
-	- `allocpp.pl`: Generates heap allocations for a function or globally
-
-	- `asmspec.pl`: Generates a simple binarizer code in C based on the specs
-
-	- `irspec.pl`: For use with various IR opcode-related operations
-
-	- `terspec.pl`: Tree Expression Rewrite spec, for use with the BURS algorithm generator
-
-	- `constfld.pl`: Specifier for constant folding conditions based on given IR
-
-	The grammar for all these preprocessors in given below
-
-===
-
 # A. Grammar: TreePP; Author: Chubak Bidpaa
 
 tree-decl 	::= "%tree" [ tree-storage ] tree-name [ tree-parent] tree-value [ tree-left ] [ tree-right ] 
