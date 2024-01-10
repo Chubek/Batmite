@@ -27,7 +27,9 @@ ExecuteShellInline <- '`' .* '`'
 
 PPText		<- ( HereStr / Text )+
 
-HereStr		<- HereStrInit Text+ [\r\n]+ Identifier ";;"
+HereStr		<- HereStrInit Text+ [\r\n]+ HereStrEnd
+
+HereStrEnd	<- Identifier ";;"
 
 HereStrInit 	<- [ \t]* Text "=<<<" Identifier
 

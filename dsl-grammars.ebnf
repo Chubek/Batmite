@@ -29,7 +29,9 @@ execute-shell-inline ::= '`' ? any ascii sequence ? '`'
 
 pp-text		::= { here-str | text }
 
-here-str 	::= here-str-init text newline identifier ";;"
+here-str 	::= here-str-init text newline here-str-end
+
+here-str-end	::= identifier ";;"
 
 here-str-init   ::= start-of-line { white-space } text "=<<<" identifier
 
