@@ -231,3 +231,122 @@ Newline             <- '\n'
 
 Text                <- .*
 
+# K. Grammar: Intermediate ML-like-to-C SDT Grammar; Author Chubak Bidpaa
+## This grammar is a subset of ML, some DSLs are translated to this language --- and this language in turn is translated down to C
+
+Program            <- Declaration*
+
+Declaration        <- FunctionDeclaration 
+                   / VariableDeclaration 
+                   / DefineType
+                   / DefineRecord
+
+FunctionDeclaration <- "fun" Identifier '(' ParameterList? ')' ':' Type '=' Expression
+
+VariableDeclaration <- "val" Identifier ':' Type '=' Expression
+
+ParameterList      <- Identifier (',' Identifier)*
+
+DefineRecord       <- "record" Identifier '=' Record
+
+Record             <- '{' RecordPairList '}'
+
+RecordPairList     <- RecordPair (';' RecordPair)*
+
+RecordPair         <- Identifier ':' Type
+
+RecordInstPair     <- Identifier '=' ( IdentifierPattern / LiteralPattern )
+
+DefineType         <- "type" UserDefinedType '=' TypeVariantList
+
+TypeVariantList    <- TypeVariant ('|' TypeVariant)*
+
+TypeVariant        <- Identifier [ "of" TypeList ]
+
+TypeList           <- Type ('*' Type)*
+
+Type               <- "int" 
+                   / "float" 
+                   / "bool" 
+                   / "char" 
+                   / "string" 
+                   / UserDefinedType
+
+UserDefinedType    <- Identifier
+
+ForExpression      <- "for" Expression "in" Expression "do" Expression "done"
+
+IfExpression       <- "if" Expression "then" Expression "else" Expression "fi"
+
+Expression         <- Literal
+                   / Identifier
+                   / '(' Expression ')'
+                   / Identifier '(' ( IdentifierPattern / LiteralPattern ) ')'
+                   / RecordInstPair
+                   / Expression BinaryOperator Expression
+                   / UnaryOperator Expression
+                   / Match Expression "with" PatternMatches
+                   / IfExpression
+                   / ForExpression
+                   / LocalExpression
+                   / AssignmentExpression
+
+LocalExpression    <- "local" Expression* "in" Expression* "end"
+
+AssignmentExpression <- "let" Identifier '=' Expression "in"
+
+Literal            <- IntegerLiteral 
+		   / OctIntegerLiteral
+		   / HexIntegerLiteral
+		   / BinIntegerLiteral
+                   / FloatLiteral 
+                   / BoolLiteral 
+                   / CharLiteral 
+                   / StringLiteral
+
+OctIntegerLiteral  <- OctDigit+ 'O'
+
+BinIntegerLiteral  <- BinDigit+ 'B'
+
+HexIntegerLiteral  <- HexDigit+ 'H'
+
+IntegerLiteral     <- Digit+
+
+FloatLiteral       <- Digit+ '.' Digit+
+
+BoolLiteral        <- "true" / "false"
+
+CharLiteral        <- "'" AnyChar "'"
+
+StringLiteral      <- '"' AnyChar* '"'
+
+BinaryOperator     <- '+' / '-' / '*' / '/' / "==" / "!=" / '<' / '>' / "<=" / ">=" / "&&" / "||"
+
+UnaryOperator      <- '-' / "!" / "++" / "--"
+
+ArgumentList       <- Expression (',' Expression)*
+
+Identifier         <- [A-Za-z_][A-Za-z0-9_]*
+
+AnyChar            <- .
+
+BinDigit 	   <- [0-1]
+
+OctDigit	   <- [0-7]
+
+HexDigit 	   <- [0-9a-fA-F]
+
+Digit              <- [0-9]
+
+Match              <- "match" Expression "with" PatternMatches
+
+PatternMatches     <- PatternMatch ('|' PatternMatch)*
+
+PatternMatch       <- Pattern '->' Expression
+
+Pattern            <- LiteralPattern / IdentifierPattern
+
+LiteralPattern     <- IntegerLiteral / FloatLiteral / BoolLiteral / CharLiteral / StringLiteral
+
+IdentifierPattern  <- Identifier [ '(' LiteralPattern ')' ]
+
