@@ -451,18 +451,26 @@ literal-pattern   ::= integer-literal | float-literal | bool-literal | char-lite
 identifier-pattern ::= identifier [ '(' literal-pattern ')' ]
 
 
-# L. Grammar: Type & Sigil Specifier DSL; Author: Chubak Bidpaa
-## The following DSL specifies a set of types and sigils for the intermediate representation, with the ability to specify how aggregate types may be specified in the grammar and what their reproduction should be
+# L. Grammar: IR Type Spcifier; Author: Chubak Bidpaa
+## The following DSL is used to spcify types used across several passes of the IR
 
+type-sigil	::= "sigil(" punct ')'
+type-size	::= "size(" number 'B' ')'
+type-name	::= "name(" identifier
 
+punct		::= '&' | '%' | '@' | '$' | '#'
 
+identifier	::= letter { letter | digit | '_' }
+letter		::= 'A' | 'B' | ... | 'Z' | 'a' | 'b' | ... | 'z'
 
+number		::= digit { digit }
+digit		::= '0' | '1' | '2' | ... | '9'
 
+comment		::= "-- " comment-text newline
+comment-text	::= no-newline { no-newline }
 
-
-
-
-
-
+newline		::= '\n'
 no-newline	::= ? any-ascii-character-except-newline ?
 any-char	::= ? any-ascii-character ?
+
+
